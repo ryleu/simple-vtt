@@ -14,3 +14,5 @@ S-VTT uses a straightforward spec for websocket communication:
 | Remove a line | `&R;<x1>,<y1>;<x2>,<y2>` | `&R;<x1>,<y1>;<x2>,<y2>` | `x1,y1`: Initial integer coordinate pair <br /> `x2,y2`: End integer coordinate pair |
 
 There is an additional endpoint at `/api/board` to completely refresh board data (used when a client first joins).
+
+Icons are from the [Papirus Icon Theme](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme).

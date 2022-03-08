@@ -6,15 +6,14 @@ const fs = require("fs");
 const extRe = /\.[a-z]+$/
 const apiRe = /\/api/
 const evilReqRe = /\.\./
-const actionRe = /&[SMDLRB];/
 
-const hostname = "192.168.1.216";
+const hostname = "127.0.0.1";
 const port = 8080;
 
 var sprites = 0;
 
 var board = {
-  "dimensions": [9, 16],
+  "dimensions": [20, 10],
   "pieces": {},
   "lines": {}
 };
@@ -41,9 +40,6 @@ wss.on('connection', function(socket) {
   socket.on('message', function(msg) {
     var msgStr = msg.toString();
     console.log(msgStr);
-    if (!msgStr.match(actionRe)) {
-      return;
-    }
 
     try {
       var rawData = msgStr.split(";");
@@ -71,6 +67,8 @@ wss.on('connection', function(socket) {
         case "B":
           setDimensions(data);
           break;
+        default:
+          return;
       }
       sockets.forEach(s => s.send(out));
     } catch (e) {
@@ -125,6 +123,9 @@ const server = http.createServer((req, res) => {
       break;
     case ".js":
       res.setHeader("Content-Type", "text/javascript");
+      break;
+    case ".svg":
+      res.setHeader("Content-Type", "image/svg+xml");
       break;
     default:
       res.setHeader("Content-Type", "text/plain");

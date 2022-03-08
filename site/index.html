@@ -9,13 +9,22 @@
   </head>
   <body>
 	   <script src="index.js"></script>
-     <div id="ws">
-       <h1>Raw WS Command</h1>
-       <div>
-         <input id="message" placeholder="Message">
-         <button id="send" disabled="true">Send</button>
-       </div>
+     <div class="menu" id="main-menu">
+       <button class="menu-button" id="menu-create-piece" title="Add Piece">
+         <img class="menu-image" id="menu-create-piece-img" src="/icons/plus.svg"></img>
+       </button>
+       <button class="menu-button" id="menu-create-line" title="Draw Lines">
+         <img class="menu-image" id="menu-create-line-img" src="/icons/pencil.svg"></img>
+       </button>
+       <button class="menu-button" id="menu-delete" title="Delete Elements">
+         <img class="menu-image" id="menu-delete-img" src="/icons/trash.svg"></img>
+       </button>
+       <div class="flexbox"></div>
+       <button class="menu-button" id="menu-settings" title="Settings" style="float: right;">
+         <img class="menu-image" id="menu-settings-img" src="/icons/gear.svg"></img>
+       </button>
+       <div class="flexspace"></div>
      </div>
-     <div id="board"></div>
+     <div id="board-holder"><div id="board"></div></div>
    </body>
 </html>

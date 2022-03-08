@@ -4,26 +4,40 @@ const actionRe = /&[SMDLRB];/
 
 let board = {
   "dimensions": [0, 0],
-  "pieces": {},
+  "pieces": [],
   "lines": {}
 }
 
 function getPiece(id) {
-
   for (var i = 0; i < Object.keys(board.pieces).length; i++) {
-    if (board.pieces[i].id == id) {
+    if (board.pieces[i] && board.pieces[i].id == id) {
       return board.pieces[i];
     }
   }
+  throw Error("couldn't find it, oh no");
 }
 
-let boardElement = {
-  get now() {
-    return document.getElementById("board");
-  }
-};
+function getBoardElement() {
+  return document.getElementById("board");
+}
 
 var elementGrid = []
+
+// <states>
+
+const States = Object.freeze({
+    NEUTRAL:   Symbol("neutral"), // nothing selected
+    LINE_DRAW_A:  Symbol("lineA"), // line drawing, no point yet
+    LINE_DRAW_B: Symbol("lineB"), // line drawing, only 1 point
+    SPRITE_SELECTED: Symbol("sprite"), // sprite selected
+    DELETE: Symbol("delete") // delete mode
+});
+
+var state = States.NEUTRAL;
+
+var stateData = null;
+
+// </states>
 
 var wsReady = false;
 var jsonReady = false;
@@ -38,7 +52,7 @@ fetch("/api/board").then((response) => {
   var piece;
   Object.keys(json.pieces).forEach((pieceId, i) => {
     piece = json.pieces[pieceId];
-    board.pieces[i] = new Piece(pieceId, piece.name, piece.pos, piece.icon);
+    board.pieces.push(new Piece(pieceId, piece.name, piece.pos, piece.icon));
   });
 
   var line;
@@ -50,20 +64,15 @@ fetch("/api/board").then((response) => {
   jsonReady = true;
 
   if (wsReady) {
-    document.querySelector('#send').disabled = false;
+    getBoardElement().disabled = false;
   }
 });
 
 ws.onopen = function() {
   wsReady = true;
   if (jsonReady) {
-    document.querySelector('#send').disabled = false;
+    getBoardElement().disabled = false;
   }
-
-  document.querySelector('#send').addEventListener('click', function() {
-    ws.send(document.querySelector('#message').value);
-    document.querySelector('#message').value = "";
-  });
 };
 
 ws.onmessage = function(msg) {
@@ -112,7 +121,7 @@ function addSprite(data) {
   var pos = parsePos(data[2]);
   var icon = atob(data[3]);
 
-  board.pieces[id] = new Piece(id, name, pos, icon);
+  board.pieces.push(new Piece(id, name, pos, icon));
 }
 
 function moveSprite(data) {
@@ -122,12 +131,8 @@ function moveSprite(data) {
 }
 
 function deleteSprite(data) {
-  var id = data[0]-0;
-  try {
-    getPiece(id).remove();
-  } catch (e) {
-    console.error(e);
-  }
+  var id = data[0];
+  getPiece(id).remove();
   for (var i = 0; i < board.pieces.length; i++) {
     if (board.pieces[i].id == id) {
       delete board.pieces[i];
@@ -163,7 +168,7 @@ function setDimensions(data) {
 
 // RENDERING //
 
-var scale = 100;
+var scale = 75;
 
 function setScale(newScale) {
   scale = newScale;
@@ -182,56 +187,55 @@ function renderBoard(x, y) {
 
   var tempGrid = [];
 
-  for (var i = 0; i < x; i++) {
+  for (var i = 0; i < y; i++) {
     var row = document.createElement('div');
     row.className = 'row';
     row.id = "row-" + i;
     row.style.width = (scale * x) + "px";
     row.style.height = scale + "px";
 
-    for (var j = 0; j < y; j++) {
+    for (var j = 0; j < x; j++) {
       var square = document.createElement('div');
       var button = document.createElement("button");
       button.className = "square-button";
       button.id = "square-button-" + i + "-" + j;
       button.style.width = scale + "px";
       button.style.height = scale + "px";
-      button.style.position = "absolute";
 
       button.addEventListener("click", event => {
-        var selectedPieces = document.getElementsByClassName("selected-piece-button");
-
-        // safety
-        if (selectedPieces.length > 1) {
-          while (selectedPieces.length > 0) {
-            selectedPieces[0].className = "piece-button";
-          }
-        }
-
-        if (selectedPieces.length !== 1) return;
-
-        var piece = selectedPieces[0];
-
-        var id = piece.id.split("-")[2];
-
         var targetId = event.target.id.split("-");
 
-        ws.send(`&M;${id};${targetId[3]-0 + 1},${targetId[2]-0 + 1}`);
+        var clickPos = [targetId[3]-0 + 1 + event.layerX / 100, targetId[2]-0 + 1 + event.layerY / 100];
 
-        piece.className = "piece-button";
+        var selectedPieces = document.getElementsByClassName("selected-piece-button");
+
+        switch (state) {
+          case States.SPRITE_SELECTED:
+            ws.send(`&M;${stateData.id};${targetId[3]-0 + 1},${targetId[2]-0 + 1}`);
+            break;
+          case States.LINE_DRAW_A:
+          case States.LINE_DRAW_B:
+            stateData.drawLine(clickPos);
+            break;
+          case States.DELETE:
+            state = States.NEUTRAL;
+            stateData = null;
+        }
       });
       square.appendChild(button);
 
       square.className = 'square';
       square.id = "square-" + j;
-      square.style.backgroundColor = (i + j) % 2 === 0 ? '#ccc' : '#aaa';
+      square.style.backgroundColor = (i + j) % 2 === 0 ? '#35393b' : '#484e51';
       square.style.position = "absolute";
       square.style.width = scale + "px";
       square.style.height = scale + "px";
       square.style.left = (scale * j) + "px";
       row.appendChild(square);
     }
-    boardElement.now.appendChild(row);
+    getBoardElement().appendChild(row);
+    getBoardElement().style.width = (x * scale) + "px";
+    getBoardElement().style.height = (y * scale + 100) + "px";
     tempGrid.push(row);
   }
 
@@ -250,14 +254,38 @@ class Piece {
     this.button = document.createElement("button");
 
     this.button.addEventListener('click', event => {
-      if (this.button.className == "selected-piece-button") {
-        this.button.className = "piece-button";
-      } else {
-        var selectedPieces = document.getElementsByClassName("selected-piece-button");
-        while (selectedPieces.length > 0) {
-          selectedPieces[0].className = "piece-button";
-        }
-        this.button.className = "selected-piece-button";
+      var targetId = event.target.id.split("-");
+
+      var clickPos = [targetId[3]-0 + 1 + event.layerX / 100, targetId[2]-0 + 1 + event.layerY / 100];
+
+      var selectedPieces = document.getElementsByClassName("selected-piece-button");
+
+      switch (state) {
+        case States.SPRITE_SELECTED:
+          if (stateData == this) {
+            state = States.NEUTRAL;
+            while (selectedPieces.length > 0) {
+              selectedPieces[0].className = "piece-button";
+            }
+            stateData = null;
+            break;
+          }
+        case States.NEUTRAL:
+          state = States.SPRITE_SELECTED;
+          while (selectedPieces.length > 0) {
+            selectedPieces[0].className = "piece-button";
+          }
+          stateData = this;
+          this.button.className = "selected-piece-button";
+          break;
+        case States.DELETE:
+          stateData = this;
+          ws.send(`&D;${this.id}`);
+          break;
+        case States.LINE_DRAW_A:
+        case States.LINE_DRAW_B:
+          stateData.drawLine(clickPos);
+          break;
       }
     });
 
@@ -288,6 +316,11 @@ class Piece {
   }
 
   set pos(newPos) {
+    if (stateData == this) {
+      this.button.className = "piece-button";
+      state = States.NEUTRAL;
+      stateData = null;
+    }
     this._pos = newPos;
     this.remove();
     this.element.style.left = (newPos[0] - 1) * scale + "px";
@@ -299,6 +332,10 @@ class Piece {
   }
 
   remove() {
+    if (stateData == this) {
+      state = States.NEUTRAL;
+      stateData = null;
+    }
     this.element.remove();
   }
 }
