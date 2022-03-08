@@ -7,7 +7,7 @@ S-VTT uses a straightforward spec for websocket communication:
 
 | Action | Request | Response | Description |
 |:---:|:---:|:---:|:---|
-| Add a sprite | `&S;<name>;<x>,<y>;<icon>` | `&S;<id>;<name>;<x>,<y>;<icon>` | `id`: Unique identifier <br /> `name`: Human-readable sprite name <br /> `x,y`: Integer coordinate pair <br /> `icon`: Icon URL |
+| Add a sprite | `&S;<name>;<x>,<y>;<icon>` | `&S;<id>;<name>;<x>,<y>;<icon>` | `id`: Unique identifier <br /> `name`: Human-readable sprite name <br /> `x,y`: Integer coordinate pair <br /> `icon`: Base 64 encoded icon URL |
 | Move a sprite | `&M;<id>;<x>,<y>` | `&M;<id>;<x>,<y>` | `id`: Unique identifier <br /> `x,y`: Integer coordinate pair |
 | Delete a sprite | `&D;<id>` | `&D;<id>` | `id`: Unique identifier |
 | Create a line | `&L;<x1>,<y1>;<x2>,<y2>;<thickness>` | `&L;<x1>,<y1>;<x2>,<y2>;<thickness>` | `x1,y1`: Initial integer coordinate pair <br /> `x2,y2`: End integer coordinate pair <br /> `thickness`: Thickness (px) of the line |
