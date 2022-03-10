@@ -257,7 +257,7 @@ function api(req, res) {
 
             res.end("Successfully applied new JSON.");
 
-            sockets.forEach(s => s.send(`&B`));
+            sessions[id].sockets.forEach(s => s.send(`&B`));
             break;
           default:
             res.statusCode = 405;

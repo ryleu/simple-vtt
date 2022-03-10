@@ -193,7 +193,7 @@ fetch("/api/wslink").then((response) => {
       if (file) {
         file.text().then(value => {
           inputElement.value = "";
-          fetch("/api/board", {
+          fetch(`/api/board/?id=${args.id}`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json"
