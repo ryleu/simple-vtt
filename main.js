@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const MD5 = require("crypto-js/md5");
 const http = require("http");
 const fs = require("fs");
 
@@ -10,10 +11,10 @@ const evilReqRe = /\.\./
 const hostname = "127.0.0.1";
 const port = 8080;
 
-var sprites = 0;
+var pieces = 0;
 
 var board = {
-  "dimensions": [20, 10],
+  "dimensions": [30, 15],
   "pieces": {},
   "lines": {}
 };
@@ -50,22 +51,25 @@ wss.on('connection', function(socket) {
 
       switch (action) {
         case "S":
-          out = addSprite(data);
+          out = addPiece(data);
           break;
         case "M":
-          moveSprite(data);
+          movePiece(data);
           break;
         case "D":
-          deleteSprite(data);
+          deletePiece(data);
           break;
         case "L":
-          createLine(data);
+          out = createLine(data);
           break;
         case "R":
           deleteLine(data);
           break;
         case "B":
           setDimensions(data);
+          break;
+        case "C":
+          out = clearBoard(data);
           break;
         default:
           return;
@@ -170,14 +174,14 @@ function toPosPair(pos1, pos2) {
   return pos1[0]+"_"+pos1[1]+"__"+pos2[0]+"_"+pos2[1];
 }
 
-function addSprite(data) {
-  var id = sprites;
-  sprites++;
-  var name = data[0];
+function addPiece(data) {
+  var id = `${pieces}-${MD5(pieces + data).toString()}`;
+  pieces++;
   var pos = parsePos(data[1]);
   var icon = "";
   try {
     icon = atob(data[2]);
+    var name = atob(data[0]);
   }
   catch (e) {
     console.error(e);
@@ -188,18 +192,18 @@ function addSprite(data) {
     "pos": pos,
     "icon": icon
   };
-  return "&S;"+id+";"+data[0]+";"+data[1]+";"+data[2];
+  return `&S;${id};${data[0]};${data[1]};${data[2]}`;
 }
 
-function moveSprite(data) {
+function movePiece(data) {
   var id = data[0];
   var pos = parsePos(data[1]);
   board.pieces[id].pos = pos;
 }
 
-function deleteSprite(data) {
+function deletePiece(data) {
   var id = data[0];
-  delete board.pieces[id-0];
+  delete board.pieces[id];
 }
 
 function createLine(data) {
@@ -209,7 +213,7 @@ function createLine(data) {
   var color = data[3];
 
   if (!color) {
-    color = "000000"
+    color = "#000000"
   }
 
   var posPair;
@@ -232,14 +236,24 @@ function createLine(data) {
     "thickness": thickness,
     "color": color
   };
+
+  return `&L;${posPair};${data[0]};${data[1]};${data[2]};${data[3]}`;
 }
 
 function deleteLine(data) {
-  var posPair = data[0]+";"+data[1];
-  delete board.lines[posPair];
+  delete board.lines[data[0]];
 }
 
 function setDimensions(data) {
   var dims = parsePos(data[0]);
   board.dimensions = dims;
+}
+
+function clearBoard(data) {
+  board.dimensions = [30, 15];
+  board.pieces = {};
+  board.lines = {};
+  pieces = 0;
+
+  return "&B;30,15";
 }

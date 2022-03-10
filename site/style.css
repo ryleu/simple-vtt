@@ -4,6 +4,12 @@ html, body {
   scrollbar-color: #454a4d #202324;
   color: #ccc;
   overflow: hidden;
+  font: 1em Whitney,"Helvetica Neue",Helvetica,Arial,sans-serif;
+  color: white;
+}
+
+body {
+  cursor: wait;
 }
 
 .menu {
@@ -19,6 +25,10 @@ html, body {
   z-index: 100;
 }
 
+.hidden-menu {
+  display: none;
+}
+
 #board-holder {
   position: relative;
   max-width: 100%;
@@ -32,13 +42,54 @@ html, body {
   flex-grow: 1;
 }
 
-.flexspace {
+.endcap {
   height: 80px;
   width: 100px;
   margin-left: 10px;
 }
 
+.flexspace {
+  max-height: 80px;
+  width: 80px;
+  margin: 10px;
+}
+
+/* This is a flexbox that spans two spaces */
+.menu-vertical {
+  height: 80px;
+  width: 180px;
+  margin: 10px;
+  flex-direction: column;
+  display: flex;
+}
+
+.menu-vertical-split {
+  flex: 1;
+  display: flex;
+  margin: 0;
+  padding: 0;
+  height: 44.5px;
+}
+
+.menu-input-title {
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  text-align: center;
+}
+
+.menu-input {
+  flex: 1;
+  background-color: #484e51;
+  border-color: #35393b;
+  border-radius: 5px;
+  border-width: 3px;
+  border-style: solid;
+  width: 100%;
+}
+
 .menu-button {
+  cursor: pointer;
   height: 80px;
   width: 80px;
   margin: 10px;
@@ -55,22 +106,53 @@ html, body {
   border-bottom-style: solid;
 }
 
+.menu-button-selected {
+  cursor: pointer;
+  height: 80px;
+  width: 80px;
+  margin: 10px;
+  background-color: #484e51;
+  border-color: #ff0;
+  border-radius: 10px;
+  border-width: 5px;
+  border-style: solid;
+}
+
+.menu-button-selected:active {
+  border-style: ridge;
+  border-right-style: solid;
+  border-bottom-style: solid;
+}
+
 .menu-image {
   height: 50px;
   width: 50px;
 }
 
+.menu-preview-image {
+  height: 80px;
+  width: 80px;
+  margin: 10px;
+  border-color: #181a1b;
+  background-color: #181a1b;
+  border-radius: 100%;
+  border-width: 1px;
+  border-style: solid;
+}
+
 .square {
   z-index: 1;
+  position: absolute;
 }
 
 .square-button {
   z-index: 2;
   background-color: rgba(0, 0, 0, 0);
   border-radius: 0px;
-  border-width: 2px;
-  border-color: rgba(0, 0, 0, 0.3);
-  border-style: solid;
+  border-width: 0px;
+  border-style: none;
+  position: absolute;
+  padding: 0;
 }
 
 .square-button:active {
@@ -78,35 +160,39 @@ html, body {
 }
 
 .line {
+  cursor: pointer;
   z-index: 3;
   transform-origin: center left;
   border-radius: 5px;
-}
-
-.line-button {
-  z-index: 4;
-}
-
-.piece {
-  z-index: 5;
+  position: absolute;
+  border-style: solid;
 }
 
 .piece-image {
-  z-index: 6;
+  z-index: 5;
   border-radius: 100%;
   background-color: rgba(0, 0, 0, 0);
+  position: absolute;
+  top: -3px;
+  left: -3px;
 }
 
-.piece-button {
-  z-index: 7;
+.piece {
+  cursor: pointer;
+  z-index: 6;
   background-color: rgba(0, 0, 0, 0);
-  border-radius: 0px;
-  border-width: 0px;
+  border-width: 3px;
+  border-color: rgba(0, 0, 0, 0);
 }
 
-.selected-piece-button {
-  z-index: 8;
+.selected-piece {
+  cursor: pointer;
+  z-index: 7;
   background-color: rgba(0, 0, 0, 0);
   border-width: 3px;
   border-color: #ff0;
+}
+
+.selected-piece:active {
+  border-style: solid;
 }

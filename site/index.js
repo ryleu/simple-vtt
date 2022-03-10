@@ -1,36 +1,31 @@
-const ws = new WebSocket('ws://127.0.0.1:8081');
+document.getElementById("js-message").style.display = "none";
 
-const actionRe = /&[SMDLRB];/
+if (localStorage.getItem("scale") === null) {
+  localStorage.setItem("scale", 100);
+}
+
+const ws = new WebSocket('ws://127.0.0.1:8081');
 
 let board = {
   "dimensions": [0, 0],
-  "pieces": [],
+  "pieces": {},
   "lines": {}
-}
-
-function getPiece(id) {
-  for (var i = 0; i < Object.keys(board.pieces).length; i++) {
-    if (board.pieces[i] && board.pieces[i].id == id) {
-      return board.pieces[i];
-    }
-  }
-  throw Error("couldn't find it, oh no");
 }
 
 function getBoardElement() {
   return document.getElementById("board");
 }
 
-var elementGrid = []
-
 // <states>
 
 const States = Object.freeze({
-    NEUTRAL:   Symbol("neutral"), // nothing selected
-    LINE_DRAW_A:  Symbol("lineA"), // line drawing, no point yet
-    LINE_DRAW_B: Symbol("lineB"), // line drawing, only 1 point
-    SPRITE_SELECTED: Symbol("sprite"), // sprite selected
-    DELETE: Symbol("delete") // delete mode
+  NEUTRAL: Symbol("neutral"), // nothing selected
+  LINE_DRAW_A: Symbol("lineA"), // line drawing, no point yet
+  LINE_DRAW_B: Symbol("lineB"), // line drawing, only 1 point
+  PIECE_SELECTED: Symbol("piece"), // piece selected
+  DELETE: Symbol("delete"), // delete mode
+  ADD_PIECE_A: Symbol("addA"), // add piece, not complete
+  ADD_PIECE_B: Symbol("addB"), // add piece, not complete
 });
 
 var state = States.NEUTRAL;
@@ -39,11 +34,12 @@ var stateData = null;
 
 // </states>
 
+var elementGrid = []
+
 var wsReady = false;
 var jsonReady = false;
 
 fetch("/api/board").then((response) => {
-  console.log(response);
   return response.json();
 }).then((json) => {
   board.dimensions = json.dimensions;
@@ -52,129 +48,208 @@ fetch("/api/board").then((response) => {
   var piece;
   Object.keys(json.pieces).forEach((pieceId, i) => {
     piece = json.pieces[pieceId];
-    board.pieces.push(new Piece(pieceId, piece.name, piece.pos, piece.icon));
+    board.pieces[pieceId] = new Piece(pieceId, piece.name, piece.pos, piece.icon);
   });
 
   var line;
   Object.keys(json.lines).forEach((lineId, i) => {
     line = json.lines[lineId];
-    board.lines[lineId] = new Line(line.pos1, line.pos2, line.thickness, line.color);
+    board.lines[lineId] = new Line(lineId, new Pos(line.pos1), new Pos(line.pos2), line.thickness, line.color);
   });
 
   jsonReady = true;
-
-  if (wsReady) {
-    getBoardElement().disabled = false;
-  }
 });
 
-ws.onopen = function() {
+ws.onopen = () => {
+  document.getElementById("main-menu").className = "menu"
+  document.getElementById("body").style.cursor = "default";
+  document.getElementById("board-holder").style.display = "inherit";
+
   wsReady = true;
-  if (jsonReady) {
-    getBoardElement().disabled = false;
-  }
+
+  // <mapping-buttons> //
+
+  // // add piece button
+  document.getElementById("menu-create-piece").addEventListener("click", event => {
+    state = States.ADD_PIECE_A;
+    stateData = null;
+    document.getElementById("main-menu").className = "hidden-menu";
+    document.getElementById("add-piece-menu").className = "menu";
+  });
+
+  // add piece cancel
+  document.getElementById("piece-menu-close").addEventListener("click", event => {
+    state = States.NEUTRAL;
+    stateData = null;
+    document.getElementById("main-menu").className = "menu";
+    document.getElementById("add-piece-menu").className = "hidden-menu";
+
+    document.getElementById("piece-menu-name-input").value = "";
+    document.getElementById("piece-menu-icon-input").value = "";
+    var img = document.getElementById("piece-menu-preview");
+    img.title = "";
+    img.src = "";
+  });
+
+  // add piece preview
+  document.getElementById("piece-menu-load").addEventListener("click", event => {
+    state = States.ADD_PIECE_B;
+    stateData = {
+      name: document.getElementById("piece-menu-name-input").value,
+      icon: document.getElementById("piece-menu-icon-input").value
+    }
+    var img = document.getElementById("piece-menu-preview");
+    img.title = stateData.name;
+    img.src = stateData.icon;
+  });
+
+
+  // // add line button
+  document.getElementById("menu-create-line").addEventListener("click", event => {
+    state = States.LINE_DRAW_A;
+    stateData = null;
+    document.getElementById("main-menu").className = "hidden-menu";
+    document.getElementById("add-line-menu").className = "menu";
+  });
+
+  // add line cancel
+  document.getElementById("line-menu-close").addEventListener("click", event => {
+    state = States.NEUTRAL;
+    stateData = null;
+    document.getElementById("main-menu").className = "menu";
+    document.getElementById("add-line-menu").className = "hidden-menu";
+  });
+
+
+  // // delete button
+  document.getElementById("menu-delete").addEventListener("click", event => {
+    state = States.DELETE;
+    stateData = null;
+    document.getElementById("main-menu").className = "hidden-menu";
+    document.getElementById("delete-menu").className = "menu";
+  });
+
+  // delete cancel
+  document.getElementById("delete-menu-close").addEventListener("click", event => {
+    state = States.NEUTRAL;
+    stateData = null;
+    document.getElementById("main-menu").className = "menu";
+    document.getElementById("delete-menu").className = "hidden-menu";
+  });
+
+
+  // // config button
+  document.getElementById("menu-config").addEventListener("click", event => {
+    document.getElementById("config-menu-scale-input").value = getScale();
+    document.getElementById("config-menu-dims-input-x").value = board.dimensions[0];
+    document.getElementById("config-menu-dims-input-y").value = board.dimensions[1];
+
+    document.getElementById("main-menu").className = "hidden-menu";
+    document.getElementById("config-menu").className = "menu";
+  });
+
+  // config cancel
+  document.getElementById("config-menu-close").addEventListener("click", event => {
+    document.getElementById("main-menu").className = "menu";
+    document.getElementById("config-menu").className = "hidden-menu";
+  });
+
+  // config scale
+  document.getElementById("config-menu-rescale").addEventListener("click", event => {
+    var scaleInput = document.getElementById("config-menu-scale-input").value;
+
+    if (scaleInput < 50) {
+      document.getElementById("config-menu-scale-input").value = 50;
+    } else if (scaleInput > 300) {
+      document.getElementById("config-menu-scale-input").value = 300;
+    } else {
+      localStorage.setItem("scale", document.getElementById("config-menu-scale-input").value);
+      window.location.reload();
+    }
+  });
+
+  // config dimensions
+  document.getElementById("config-menu-dims-apply").addEventListener("click", event => {
+    var dimsInputX = Math.round(document.getElementById("config-menu-dims-input-x").value);
+    var dimsInputY = Math.round(document.getElementById("config-menu-dims-input-y").value);
+
+    if (dimsInputX >= 1 && dimsInputX <= 100 && dimsInputY >= 1 && dimsInputY <= 100) {
+      ws.send(`&B;${dimsInputX},${dimsInputY}`);
+      return;
+    }
+
+    if (dimsInputX < 1) {
+      document.getElementById("config-menu-dims-input-x").value = 1;
+    } else if (dimsInputX > 100) {
+      document.getElementById("config-menu-dims-input-x").value = 300;
+    }
+
+    if (dimsInputY < 1) {
+      document.getElementById("config-menu-dims-input-y").value = 1;
+    } else if (dimsInputY > 100) {
+      document.getElementById("config-menu-dims-input-y").value = 300;
+    }
+  });
+
+  // config reset
+  document.getElementById("config-menu-reset").addEventListener("click", event => {
+    ws.send("&C;-");
+  });
+
+  // </mapping-buttons> //
 };
 
-ws.onmessage = function(msg) {
-  if (!msg.data.match(actionRe)) {
-    return;
-  }
-
+ws.onmessage = (msg) => {
   var rawData = msg.data.split(";");
   var action = rawData[0].substring(1);
   var data = rawData.slice(1, rawData.length);
 
   switch (action) {
-    case "S":
-      addSprite(data);
+    case "S": // Add piece
+      board.pieces[data[0]] = new Piece(
+        data[0], // id
+        atob(data[1]), // base64 name
+        parsePos(data[2]), // position
+        atob(data[3]) // base64 icon url
+      );
       break;
-    case "M":
-      moveSprite(data);
+    case "M": // Move piece
+      board.pieces[data[0]].pos = parsePos(data[1]);
       break;
-    case "D":
-      deleteSprite(data);
+    case "D": // Delete piece
+      board.pieces[data[0]].remove();
+      delete board.pieces[data[0]];
       break;
-    case "L":
-      createLine(data);
+    case "L": // Add line
+      board.lines[data[0]] = new Line(
+        data[0], // id
+        parsePos(data[1]), // first position
+        parsePos(data[2]), // second position
+        data[3] - 0, // thickness
+        data[4] // color
+      );
       break;
-    case "R":
-      deleteLine(data);
+    case "R": // Delete line
+      board.lines[data[0]].remove();
+      delete board.lines[data[0]];
       break;
-    case "B":
-      setDimensions(data);
+    case "B": // Resize board
+      window.location.reload(); // jk, that's too hard, just refresh
       break;
   }
 };
 
-function parsePos(posStr) {
-  var pos = posStr.split(",");
-  return [pos[0]-0, pos[1]-0];
-}
-
-function toPosPair(pos1, pos2) {
-  return pos1[0]+"_"+pos1[1]+"__"+pos2[0]+"_"+pos2[1];
-}
-
-function addSprite(data) {
-  var id = data[0]-0;
-  var name = data[1];
-  var pos = parsePos(data[2]);
-  var icon = atob(data[3]);
-
-  board.pieces.push(new Piece(id, name, pos, icon));
-}
-
-function moveSprite(data) {
-  var id = data[0]-0;
-  var pos = parsePos(data[1]);
-  getPiece(id).pos = pos;
-}
-
-function deleteSprite(data) {
-  var id = data[0];
-  getPiece(id).remove();
-  for (var i = 0; i < board.pieces.length; i++) {
-    if (board.pieces[i].id == id) {
-      delete board.pieces[i];
-      return;
-    }
-  }
-}
-
-function createLine(data) {
-  var pos1 = parsePos(data[0]);
-  var pos2 = parsePos(data[1]);
-  var thickness = data[2]-0;
-  var color = data[3];
-
-  if (!color) {
-    color = "000000"
-  }
-
-  var line = new Line(pos1, pos2, thickness, color);
-
-  board.lines[line.id] = line
-}
-
-function deleteLine(data) {
-  var posPair = data[0]+";"+data[1];
-  board.lines[posPair].remove();
-  delete board.lines[posPair];
-}
-
-function setDimensions(data) {
-  window.location.reload();
-}
-
 // RENDERING //
 
-var scale = 75;
-
-function setScale(newScale) {
-  scale = newScale;
-  renderBoard(board.dimensions[0], board.dimensions[1]);
+// this is the width of each tile
+function getScale() {
+  return localStorage.getItem("scale");
 }
 
+// this is the amount of subdivisions each tile gets
+const subScale = 0.2;
+
+// massive function to draw the tiles
 function renderBoard(x, y) {
   for (var i = elementGrid.length - 1; i > -1; i--) {
     for (var j = elementGrid[i].children.length - 1; j > -1; j--) {
@@ -191,56 +266,47 @@ function renderBoard(x, y) {
     var row = document.createElement('div');
     row.className = 'row';
     row.id = "row-" + i;
-    row.style.width = (scale * x) + "px";
-    row.style.height = scale + "px";
+    row.style.width = (getScale() * x) + "px";
+    row.style.height = getScale() + "px";
 
     for (var j = 0; j < x; j++) {
       var square = document.createElement('div');
+      square.className = 'square';
+      square.id = "square-" + j;
+      // this is some basic chess board color logic
+      square.style.backgroundColor = (i + j) % 2 === 0 ? '#35393b' : '#484e51';
+      square.style.width = getScale() + "px";
+      square.style.height = getScale() + "px";
+      square.style.left = (getScale() * j) + "px";
+
       var button = document.createElement("button");
       button.className = "square-button";
       button.id = "square-button-" + i + "-" + j;
-      button.style.width = scale + "px";
-      button.style.height = scale + "px";
+      button.style.width = getScale() + "px";
+      button.style.height = getScale() + "px";
 
       button.addEventListener("click", event => {
         var targetId = event.target.id.split("-");
 
-        var clickPos = [targetId[3]-0 + 1 + event.layerX / 100, targetId[2]-0 + 1 + event.layerY / 100];
-
-        var selectedPieces = document.getElementsByClassName("selected-piece-button");
-
-        switch (state) {
-          case States.SPRITE_SELECTED:
-            ws.send(`&M;${stateData.id};${targetId[3]-0 + 1},${targetId[2]-0 + 1}`);
-            break;
-          case States.LINE_DRAW_A:
-          case States.LINE_DRAW_B:
-            stateData.drawLine(clickPos);
-            break;
-          case States.DELETE:
-            state = States.NEUTRAL;
-            stateData = null;
-        }
+        clickEvent(
+          new Pos(
+            (targetId[3] - 0) + subScale * Math.round(event.layerX / (getScale() * subScale)),
+            (targetId[2] - 0) + subScale * Math.round(event.layerY / (getScale() * subScale))
+          )
+        );
       });
-      square.appendChild(button);
 
-      square.className = 'square';
-      square.id = "square-" + j;
-      square.style.backgroundColor = (i + j) % 2 === 0 ? '#35393b' : '#484e51';
-      square.style.position = "absolute";
-      square.style.width = scale + "px";
-      square.style.height = scale + "px";
-      square.style.left = (scale * j) + "px";
+      square.appendChild(button);
       row.appendChild(square);
     }
     getBoardElement().appendChild(row);
-    getBoardElement().style.width = (x * scale) + "px";
-    getBoardElement().style.height = (y * scale + 100) + "px";
+    getBoardElement().style.width = (x * getScale()) + "px";
+    getBoardElement().style.height = (y * getScale() + 100) + "px";
     tempGrid.push(row);
   }
 
   elementGrid = tempGrid;
- }
+}
 
 class Piece {
   constructor(id, name, pos, icon) {
@@ -249,67 +315,58 @@ class Piece {
     this.icon = icon;
 
     // create the element on the page
-    this.element = document.createElement("div");
     this.image = document.createElement("img");
-    this.button = document.createElement("button");
+    this.element = document.createElement("button");
 
-    this.button.addEventListener('click', event => {
-      var targetId = event.target.id.split("-");
+    this.element.addEventListener('click', event => {
+      var pos = new Pos(
+        (this.pos.x - 1) + subScale * Math.round(event.layerX / (getScale() * subScale)),
+        (this.pos.y - 1) + subScale * Math.round(event.layerY / (getScale() * subScale))
+      )
 
-      var clickPos = [targetId[3]-0 + 1 + event.layerX / 100, targetId[2]-0 + 1 + event.layerY / 100];
-
-      var selectedPieces = document.getElementsByClassName("selected-piece-button");
+      var selectedPieces = document.getElementsByClassName("selected-piece");
 
       switch (state) {
-        case States.SPRITE_SELECTED:
+        case States.PIECE_SELECTED:
           if (stateData == this) {
             state = States.NEUTRAL;
             while (selectedPieces.length > 0) {
-              selectedPieces[0].className = "piece-button";
+              selectedPieces[0].className = "piece";
             }
             stateData = null;
             break;
           }
-        case States.NEUTRAL:
-          state = States.SPRITE_SELECTED;
-          while (selectedPieces.length > 0) {
-            selectedPieces[0].className = "piece-button";
-          }
-          stateData = this;
-          this.button.className = "selected-piece-button";
-          break;
-        case States.DELETE:
-          stateData = this;
-          ws.send(`&D;${this.id}`);
-          break;
-        case States.LINE_DRAW_A:
-        case States.LINE_DRAW_B:
-          stateData.drawLine(clickPos);
-          break;
+          case States.NEUTRAL:
+            state = States.PIECE_SELECTED;
+            while (selectedPieces.length > 0) {
+              selectedPieces[0].className = "piece";
+            }
+            stateData = this;
+            this.element.className = "selected-piece";
+            break;
+          case States.DELETE:
+            stateData = this;
+            ws.send(`&D;${this.id}`);
+            break;
+          default:
+            clickEvent(pos);
       }
     });
 
     this.image.className = "piece-image";
     this.image.id = "piece-image-" + id;
-    this.image.style.width = scale + "px";
-    this.image.style.height = scale + "px";
+    this.image.style.width = getScale() + "px";
+    this.image.style.height = getScale() + "px";
     this.image.src = icon;
     this.image.style.position = "absolute";
     this.element.appendChild(this.image);
-
-    this.button.className = "piece-button";
-    this.button.id = "piece-button-" + id;
-    this.button.style.width = scale + "px";
-    this.button.style.height = scale + "px";
-    this.button.style.position = "absolute";
-    this.element.appendChild(this.button);
 
     this.element.className = "piece";
     this.element.id = "piece-" + id;
     this.element.title = name;
 
-    this.element.style.width = scale + "px";
-    this.element.style.height = scale + "px";
+    this.element.style.width = getScale() + "px";
+    this.element.style.height = getScale() + "px";
     this.element.style.position = "absolute";
 
     this.pos = pos;
@@ -317,14 +374,20 @@ class Piece {
 
   set pos(newPos) {
     if (stateData == this) {
-      this.button.className = "piece-button";
+      this.element.className = "piece";
       state = States.NEUTRAL;
       stateData = null;
     }
     this._pos = newPos;
     this.remove();
-    this.element.style.left = (newPos[0] - 1) * scale + "px";
-    elementGrid[newPos[1] - 1].appendChild(this.element);
+    this.element.style.left = (newPos.x - 1) * getScale() + "px";
+
+    try {
+      elementGrid[newPos.y - 1].appendChild(this.element);
+    } catch (e) {
+      console.error(e);
+      ws.send(`&D;${this.id}`);
+    }
   }
 
   get pos() {
@@ -333,70 +396,145 @@ class Piece {
 
   remove() {
     if (stateData == this) {
-      state = States.NEUTRAL;
       stateData = null;
     }
     this.element.remove();
   }
 }
 
-function rectToPol(pos) {
-  return [
-    Math.sqrt(Math.pow(pos[0], 2) + Math.pow(pos[1], 2)),
-    Math.atan(pos[0] / pos[1])
-  ];
+function cartesianToPolar(x, y) {
+  distance = Math.sqrt(x * x + y * y);
+  radians = Math.atan2(y, x); // This takes y first
+  polarCoor = {
+    distance: distance,
+    radians: radians
+  }
+  return polarCoor;
 }
 
-function polToRect(pos) {
-  return [
-    Math.cos(pos[1]) * pos[0],
-    Math.sin(pos[1]) * pos[0]
-  ];
-}
-
-function transform(pos1, pos2) {
-
+function polarToCartesian(distance, radians) {
+  return new Pos(Math.cos(radians) * distance, Math.sin(radians) * distance);
 }
 
 class Line {
-  constructor(pos1, pos2, thickness, color) {
-    if (pos1[0] < pos2[0]) {
-      this.id = toPosPair(pos1, pos2);
-    } else if (pos2[0] < pos1[0]) {
-      this.id = toPosPair(pos2, pos1);
-    } else if (pos1[1] < pos2[1]) {
-      this.id = toPosPair(pos1, pos2);
-    } else if (pos2[1] < pos1[1]) {
-      this.id = toPosPair(pos2, pos1);Math
-    } else {
-      throw Exception();
-    }
+  constructor(id, pos1, pos2, thickness, color) {
+    this.id = id;
 
-    var relPolPos = rectToPol([pos2[0] - pos1[0], pos2[1] - pos1[1]]);
+    var realThickness = thickness * getScale() / 15
 
-    var length = relPolPos[0];
-    var angle = relPolPos[1];
+    var polPos = cartesianToPolar(pos2.x - pos1.x, pos2.y - pos1.y);
+
+    this.length = polPos.distance;
+    this.angle = polPos.radians;
 
     this.pos = pos1;
 
-    this.element = document.createElement("div");
+    this.element = document.createElement("button");
+
+    this.element.addEventListener("click", event => {
+      var relPos = polarToCartesian(event.layerX, this.angle);
+      // Remember: the click is offset by the subscale
+      var pos = new Pos(
+        this.pos.x + subScale * (Math.round(relPos.x / (getScale() * subScale)) - 1),
+        this.pos.y + subScale * (Math.round(relPos.y / (getScale() * subScale)) - 1)
+      );
+
+      switch (state) {
+        case States.DELETE:
+          stateData = this;
+          ws.send(`&R;${this.id}`);
+          break;
+        default:
+          clickEvent(pos);
+      }
+    });
 
     this.element.className = "line";
     this.element.id = "line-" + this.id;
 
-    this.element.style.width = length * scale + "px";
-    this.element.style.height = thickness * scale / 16 + "px";
+    this.element.style.width = this.length * getScale() + "px";
+    this.element.style.height = realThickness + "px";
     this.element.style.position = "absolute";
 
-    this.element.style.backgroundColor = "#" + color;
-    this.element.style.transform = "rotate(" + angle + "rad)";
+    this.element.style.backgroundColor = color;
+    this.element.style.borderColor = color;
+    // Crazy transform because the actual value is offset by the subscale
+    this.element.style.transform = `translateY(${-(realThickness / 2 + getScale() * subScale)}px) translateX(${-getScale() * subScale}px) rotate(${this.angle}rad)`;
 
-    this.element.style.left = ((this.pos[0] - 1) * scale) + "px";
-    this.element.style.top = (this.pos[1] % board.dimensions[1]) * scale + "px";
-    elementGrid[Math.floor(this.pos[1]) - 1].appendChild(this.element);
+    this.element.style.left = this.pos.x * getScale() + "px";
+    this.element.style.top = this.pos.y * getScale() + "px";
+
+    getBoardElement().appendChild(this.element);
   }
 
   remove() {
+    if (stateData == this) {
+      stateData = null;
+    }
     this.element.remove();
   }
+}
+
+class Pos {
+  constructor(x, y) {
+    if (y === undefined) {
+      y = x[1];
+      x = x[0];
+    }
+    this[0] = x;
+    this.x = x;
+    this[1] = y;
+    this.y = y;
+  }
+}
+
+function clickEvent(pos) {
+  // Offset by the subscale so that you can place lines on square edges
+  var linePos = new Pos(pos.x + subScale, pos.y + subScale);
+  var piecePos = new Pos(Math.floor(pos.x) + 1, Math.floor(pos.y) + 1);
+
+  switch (state) {
+    case States.PIECE_SELECTED:
+      ws.send(
+        `&M;${stateData.id};${piecePos.x},${piecePos.y}`
+      );
+      break;
+    case States.LINE_DRAW_A:
+      stateData = {
+        thickness: document.getElementById("line-menu-thickness-input").value,
+        color: document.getElementById("line-menu-color-input").value,
+        pos: Object.freeze(linePos),
+        drawLine: function(pos2) {
+          ws.send(
+            `&L;${stateData.pos.x},${stateData.pos.y};` +
+            `${pos2.x},${pos2.y};` +
+            `${stateData.thickness};${stateData.color}`
+          );
+        }
+      }
+      state = States.LINE_DRAW_B;
+      break;
+    case States.LINE_DRAW_B:
+      stateData.drawLine(linePos);
+      stateData = null;
+      state = States.LINE_DRAW_A;
+      break;
+    case States.ADD_PIECE_B:
+      var img = document.getElementById("piece-menu-preview");
+      img.title = "";
+      img.src = "";
+      ws.send(
+        `&S;${btoa(stateData.name)};` +
+        `${piecePos.x},${piecePos.y};` +
+        `${btoa(stateData.icon)}`
+      );
+      stateData = null;
+      state = States.NEUTRAL;
+      break;
+  }
+}
+
+function parsePos(rawPos) {
+  var split = rawPos.split(",");
+  return new Pos(split[0]-0, split[1]-0);
 }
