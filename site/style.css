@@ -8,6 +8,10 @@ html, body {
   color: white;
 }
 
+a:visited {
+  color: white;
+}
+
 .main-area {
   display: flex;
   flex-direction: row;

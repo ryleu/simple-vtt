@@ -56,7 +56,7 @@ to this, if you want to use HTTP instead:
 ```js
 const https = require("http");
 ```
-Then, you have to remove SSL file references and change the websocket URL in `site/board/index.js` from `wss://` to `ws://`.
+Then, you have to remove TLS file references and change the websocket URL in `site/board/index.js` from `wss://` to `ws://`.
 
 
 ## Attribution
