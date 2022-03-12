@@ -12,6 +12,7 @@
 <body id="body">
   <h1 id="js-message">Please enable JavaScript to use this site.</h1>
   <script src="index.js"></script>
+
   <!-- main menu -->
   <div class="hidden-menu" id="main-menu">
     <button class="menu-button" id="menu-create-piece" title="Add Piece">
@@ -23,7 +24,9 @@
     <button class="menu-button" id="menu-delete" title="Delete Elements">
       <img class="menu-image" id="menu-delete-img" src="/icons/trash.svg"></img>
     </button>
-    <div class="flexbox"></div>
+    <div class="flexbox">
+      <h1 id="invite-code" style="position: relative; top: calc(50px - 1.25em); font: 3em; text-align: center;"></h1>
+    </div>
     <button class="menu-button" id="menu-undo" title="Undo" disabled>
       <img class="menu-image" id="menu-undo-img" src="/icons/undo.svg"></img>
     </button>

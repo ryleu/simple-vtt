@@ -41,240 +41,243 @@ var wsReady = false;
 var jsonReady = false;
 
 
-var ws;
+let ws = new WebSocket(`wss://${document.URL.split("//")[1].split("/")[0]}:443`);
 
-fetch("/api/wslink").then((response) => {
-  return response.json();
-}).then((json) => {
-  ws = new WebSocket(json.link);
+ws.onopen = () => {
+  ws.send(`&A;${args.id}`);
 
-  ws.onopen = () => {
-    ws.send(`&A;${args.id}`);
+  document.getElementById("main-menu").className = "menu";
+  document.getElementById("body").style.cursor = "default";
+  document.getElementById("board-holder").style.display = "inherit";
+  document.getElementById("invite-code").innerHTML = `Invite: ${args.id}`;
+  document.getElementById("config-menu-download").href = `/api/board/?id=${args.id}`;
 
-    document.getElementById("main-menu").className = "menu"
-    document.getElementById("body").style.cursor = "default";
-    document.getElementById("board-holder").style.display = "inherit";
+  wsReady = true;
 
-    wsReady = true;
+  // <mapping-buttons> //
 
-    // <mapping-buttons> //
+  // // add piece button
+  document.getElementById("menu-create-piece").addEventListener("click", event => {
+    state = States.ADD_PIECE_A;
+    stateData = null;
+    document.getElementById("main-menu").className = "hidden-menu";
+    document.getElementById("add-piece-menu").className = "menu";
+  });
 
-    // // add piece button
-    document.getElementById("menu-create-piece").addEventListener("click", event => {
-      state = States.ADD_PIECE_A;
-      stateData = null;
-      document.getElementById("main-menu").className = "hidden-menu";
-      document.getElementById("add-piece-menu").className = "menu";
-    });
+  // add piece cancel
+  document.getElementById("piece-menu-close").addEventListener("click", event => {
+    state = States.NEUTRAL;
+    stateData = null;
+    document.getElementById("main-menu").className = "menu";
+    document.getElementById("add-piece-menu").className = "hidden-menu";
 
-    // add piece cancel
-    document.getElementById("piece-menu-close").addEventListener("click", event => {
-      state = States.NEUTRAL;
-      stateData = null;
-      document.getElementById("main-menu").className = "menu";
-      document.getElementById("add-piece-menu").className = "hidden-menu";
+    document.getElementById("piece-menu-name-input").value = "";
+    document.getElementById("piece-menu-icon-input").value = "";
+    var img = document.getElementById("piece-menu-preview");
+    img.title = "";
+    img.src = "";
+  });
 
-      document.getElementById("piece-menu-name-input").value = "";
-      document.getElementById("piece-menu-icon-input").value = "";
-      var img = document.getElementById("piece-menu-preview");
-      img.title = "";
-      img.src = "";
-    });
-
-    // add piece preview
-    document.getElementById("piece-menu-load").addEventListener("click", event => {
-      state = States.ADD_PIECE_B;
-      stateData = {
-        name: document.getElementById("piece-menu-name-input").value,
-        icon: document.getElementById("piece-menu-icon-input").value
-      }
-      var img = document.getElementById("piece-menu-preview");
-      img.title = stateData.name;
-      img.src = stateData.icon;
-    });
-
-
-    // // add line button
-    document.getElementById("menu-create-line").addEventListener("click", event => {
-      state = States.LINE_DRAW_A;
-      stateData = null;
-      document.getElementById("main-menu").className = "hidden-menu";
-      document.getElementById("add-line-menu").className = "menu";
-    });
-
-    // add line cancel
-    document.getElementById("line-menu-close").addEventListener("click", event => {
-      state = States.NEUTRAL;
-      stateData = null;
-      document.getElementById("main-menu").className = "menu";
-      document.getElementById("add-line-menu").className = "hidden-menu";
-    });
-
-
-    // // delete button
-    document.getElementById("menu-delete").addEventListener("click", event => {
-      state = States.DELETE;
-      stateData = null;
-      document.getElementById("main-menu").className = "hidden-menu";
-      document.getElementById("delete-menu").className = "menu";
-    });
-
-    // delete cancel
-    document.getElementById("delete-menu-close").addEventListener("click", event => {
-      state = States.NEUTRAL;
-      stateData = null;
-      document.getElementById("main-menu").className = "menu";
-      document.getElementById("delete-menu").className = "hidden-menu";
-    });
-
-
-    // // config button
-    document.getElementById("menu-config").addEventListener("click", event => {
-      document.getElementById("config-menu-scale-input").value = getScale();
-      document.getElementById("config-menu-dims-input-x").value = board.dimensions[0];
-      document.getElementById("config-menu-dims-input-y").value = board.dimensions[1];
-
-      document.getElementById("main-menu").className = "hidden-menu";
-      document.getElementById("config-menu").className = "menu";
-    });
-
-    // config cancel
-    document.getElementById("config-menu-close").addEventListener("click", event => {
-      document.getElementById("main-menu").className = "menu";
-      document.getElementById("config-menu").className = "hidden-menu";
-    });
-
-    // config scale
-    document.getElementById("config-menu-rescale").addEventListener("click", event => {
-      var scaleInput = document.getElementById("config-menu-scale-input").value;
-
-      if (scaleInput < 50) {
-        document.getElementById("config-menu-scale-input").value = 50;
-      } else if (scaleInput > 300) {
-        document.getElementById("config-menu-scale-input").value = 300;
-      } else {
-        localStorage.setItem("scale", document.getElementById("config-menu-scale-input").value);
-        window.location.reload();
-      }
-    });
-
-    // config dimensions
-    document.getElementById("config-menu-dims-apply").addEventListener("click", event => {
-      var dimsInputX = Math.round(document.getElementById("config-menu-dims-input-x").value);
-      var dimsInputY = Math.round(document.getElementById("config-menu-dims-input-y").value);
-
-      if (dimsInputX >= 1 && dimsInputX <= 100 && dimsInputY >= 1 && dimsInputY <= 100) {
-        ws.send(`&B;${dimsInputX},${dimsInputY}`);
-        return;
-      }
-
-      if (dimsInputX < 1) {
-        document.getElementById("config-menu-dims-input-x").value = 1;
-      } else if (dimsInputX > 100) {
-        document.getElementById("config-menu-dims-input-x").value = 300;
-      }
-
-      if (dimsInputY < 1) {
-        document.getElementById("config-menu-dims-input-y").value = 1;
-      } else if (dimsInputY > 100) {
-        document.getElementById("config-menu-dims-input-y").value = 300;
-      }
-    });
-
-    // config reset
-    document.getElementById("config-menu-reset").addEventListener("click", event => {
-      ws.send("&C");
-    });
-
-    // config upload
-    document.getElementById("config-menu-upload-apply").addEventListener("click", event => {
-      let inputElement = document.getElementById("config-menu-upload-input");
-      let file = inputElement.files[0];
-      if (file) {
-        file.text().then(value => {
-          inputElement.value = "";
-          fetch(`/api/board/?id=${args.id}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: value
-          });
-        });
-      }
-    });
-
-    // config upload selected file
-    document.getElementById("config-menu-upload-input").addEventListener("input", event => {
-      let labelElement = document.getElementById("config-menu-upload-selected");
-      let file = document.getElementById("config-menu-upload-input").files[0];
-      if (file) {
-        labelElement.textContent = file.name;
-      } else {
-        labelElement.textContent = "No file selected...";
-      }
-    });
-
-    // </mapping-buttons> //
-  };
-
-  ws.onmessage = (msg) => {
-    var rawData = msg.data.split(";");
-    var action = rawData[0].substring(1);
-    var data = rawData.slice(1, rawData.length);
-
-    switch (action) {
-      case "S": // Add piece
-        board.pieces[data[0]] = new Piece(
-          data[0], // id
-          atob(data[1]), // base64 name
-          parsePos(data[2]), // position
-          atob(data[3]) // base64 icon url
-        );
-        break;
-      case "M": // Move piece
-        board.pieces[data[0]].pos = parsePos(data[1]);
-        break;
-      case "D": // Delete piece
-        board.pieces[data[0]].remove();
-        delete board.pieces[data[0]];
-        break;
-      case "L": // Add line
-        board.lines[data[0]] = new Line(
-          data[0], // id
-          parsePos(data[1]), // first position
-          parsePos(data[2]), // second position
-          data[3] - 0, // thickness
-          data[4] // color
-        );
-        break;
-      case "R": // Delete line
-        board.lines[data[0]].remove();
-        delete board.lines[data[0]];
-        break;
-      case "B": // Resize board
-        window.location.reload(); // jk, that's too hard, just refresh
-        break;
+  // add piece preview
+  document.getElementById("piece-menu-load").addEventListener("click", event => {
+    state = States.ADD_PIECE_B;
+    stateData = {
+      name: document.getElementById("piece-menu-name-input").value,
+      icon: document.getElementById("piece-menu-icon-input").value
     }
-  };
-});
+    var img = document.getElementById("piece-menu-preview");
+    img.title = stateData.name;
+    img.src = stateData.icon;
+  });
 
-fetch("/api/board/?id=" + args.id).then((response) => {
-  return response.json();
-}).then((json) => {
+
+  // // add line button
+  document.getElementById("menu-create-line").addEventListener("click", event => {
+    state = States.LINE_DRAW_A;
+    stateData = null;
+    document.getElementById("main-menu").className = "hidden-menu";
+    document.getElementById("add-line-menu").className = "menu";
+  });
+
+  // add line cancel
+  document.getElementById("line-menu-close").addEventListener("click", event => {
+    state = States.NEUTRAL;
+    stateData = null;
+    document.getElementById("main-menu").className = "menu";
+    document.getElementById("add-line-menu").className = "hidden-menu";
+  });
+
+
+  // // delete button
+  document.getElementById("menu-delete").addEventListener("click", event => {
+    state = States.DELETE;
+    stateData = null;
+    document.getElementById("main-menu").className = "hidden-menu";
+    document.getElementById("delete-menu").className = "menu";
+  });
+
+  // delete cancel
+  document.getElementById("delete-menu-close").addEventListener("click", event => {
+    state = States.NEUTRAL;
+    stateData = null;
+    document.getElementById("main-menu").className = "menu";
+    document.getElementById("delete-menu").className = "hidden-menu";
+  });
+
+
+  // // config button
+  document.getElementById("menu-config").addEventListener("click", event => {
+    document.getElementById("config-menu-scale-input").value = getScale();
+    document.getElementById("config-menu-dims-input-x").value = board.dimensions[0];
+    document.getElementById("config-menu-dims-input-y").value = board.dimensions[1];
+
+    document.getElementById("main-menu").className = "hidden-menu";
+    document.getElementById("config-menu").className = "menu";
+  });
+
+  // config cancel
+  document.getElementById("config-menu-close").addEventListener("click", event => {
+    document.getElementById("main-menu").className = "menu";
+    document.getElementById("config-menu").className = "hidden-menu";
+  });
+
+  // config scale
+  document.getElementById("config-menu-rescale").addEventListener("click", event => {
+    var scaleInput = document.getElementById("config-menu-scale-input").value;
+
+    if (scaleInput < 50) {
+      document.getElementById("config-menu-scale-input").value = 50;
+    } else if (scaleInput > 300) {
+      document.getElementById("config-menu-scale-input").value = 300;
+    } else {
+      localStorage.setItem("scale", document.getElementById("config-menu-scale-input").value);
+      window.location.reload();
+    }
+  });
+
+  // config dimensions
+  document.getElementById("config-menu-dims-apply").addEventListener("click", event => {
+    var dimsInputX = Math.round(document.getElementById("config-menu-dims-input-x").value);
+    var dimsInputY = Math.round(document.getElementById("config-menu-dims-input-y").value);
+
+    if (dimsInputX >= 1 && dimsInputX <= 100 && dimsInputY >= 1 && dimsInputY <= 100) {
+      ws.send(`&B;${dimsInputX},${dimsInputY}`);
+      return;
+    }
+
+    if (dimsInputX < 1) {
+      document.getElementById("config-menu-dims-input-x").value = 1;
+    } else if (dimsInputX > 100) {
+      document.getElementById("config-menu-dims-input-x").value = 300;
+    }
+
+    if (dimsInputY < 1) {
+      document.getElementById("config-menu-dims-input-y").value = 1;
+    } else if (dimsInputY > 100) {
+      document.getElementById("config-menu-dims-input-y").value = 300;
+    }
+  });
+
+  // config reset
+  document.getElementById("config-menu-reset").addEventListener("click", event => {
+    ws.send("&C");
+  });
+
+  // config upload
+  document.getElementById("config-menu-upload-apply").addEventListener("click", event => {
+    let inputElement = document.getElementById("config-menu-upload-input");
+    let file = inputElement.files[0];
+    if (file) {
+      file.text().then(value => {
+        inputElement.value = "";
+        fetch(`/api/board/?id=${args.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: value
+        });
+      });
+    }
+  });
+
+  // config upload selected file
+  document.getElementById("config-menu-upload-input").addEventListener("input", event => {
+    let labelElement = document.getElementById("config-menu-upload-selected");
+    let file = document.getElementById("config-menu-upload-input").files[0];
+    if (file) {
+      labelElement.textContent = file.name;
+    } else {
+      labelElement.textContent = "No file selected...";
+    }
+  });
+
+  // </mapping-buttons> //
+};
+
+ws.onmessage = (msg) => {
+  var rawData = msg.data.split(";");
+  var action = rawData[0].substring(1);
+  var data = rawData.slice(1, rawData.length);
+
+  switch (action) {
+    case "S": // Add piece
+      board.pieces[data[0]] = new Piece(
+        data[0], // id
+        atob(data[1]), // base64 name
+        parsePos(data[2]), // position
+        atob(data[3]) // base64 icon url
+      );
+      break;
+    case "M": // Move piece
+      board.pieces[data[0]].pos = parsePos(data[1]);
+      break;
+    case "D": // Delete piece
+      board.pieces[data[0]].remove();
+      delete board.pieces[data[0]];
+      break;
+    case "L": // Add line
+      board.lines[data[0]] = new Line(
+        data[0], // id
+        parsePos(data[1]), // first position
+        parsePos(data[2]), // second position
+        data[3] - 0, // thickness
+        data[4] // color
+      );
+      break;
+    case "R": // Delete line
+      board.lines[data[0]].remove();
+      delete board.lines[data[0]];
+      break;
+    case "B": // Resize board
+      window.location.reload(); // jk, that's too hard, just refresh
+      break;
+  }
+};
+
+fetch("/api/board/?id=" + args.id).then(response => response.json()).then((json) => {
   board.dimensions = json.dimensions;
   renderBoard(json.dimensions[0], json.dimensions[1]);
 
-  var piece;
   Object.keys(json.pieces).forEach((pieceId, i) => {
-    piece = json.pieces[pieceId];
-    board.pieces[pieceId] = new Piece(pieceId, piece.name, piece.pos, piece.icon);
+    let piece = json.pieces[pieceId];
+    board.pieces[pieceId] = new Piece(
+      pieceId,
+      piece.name,
+      piece.pos,
+      piece.icon
+    );
   });
 
-  var line;
   Object.keys(json.lines).forEach((lineId, i) => {
-    line = json.lines[lineId];
-    board.lines[lineId] = new Line(lineId, new Pos(line.pos1), new Pos(line.pos2), line.thickness, line.color);
+    let line = json.lines[lineId];
+    board.lines[lineId] = new Line(
+      lineId,
+      new Pos(line.pos1),
+      new Pos(line.pos2),
+      line.thickness,
+      line.color
+    );
   });
 
   jsonReady = true;
@@ -311,35 +314,33 @@ function renderBoard(x, y) {
     for (var j = 0; j < x; j++) {
       var square = document.createElement('div');
       square.className = 'square';
-      square.id = "square-" + j;
+      square.id = `square-${j}`;
       // this is some basic chess board color logic
       square.style.backgroundColor = (i + j) % 2 === 0 ? '#35393b' : '#484e51';
       square.style.width = getScale() + "px";
       square.style.height = getScale() + "px";
-      square.style.left = (getScale() * j) + "px";
+      square.style.left = getScale() * j + "px";
 
       var button = document.createElement("button");
       button.className = "square-button";
-      button.id = "square-button-" + i + "-" + j;
+      button.id = `square-button-${i}-${j}`;
       button.style.width = getScale() + "px";
       button.style.height = getScale() + "px";
 
       button.addEventListener("click", event => {
         var targetId = event.target.id.split("-");
 
-        clickEvent(
-          new Pos(
-            (targetId[3] - 0) + subScale * Math.round(event.layerX / (getScale() * subScale)),
-            (targetId[2] - 0) + subScale * Math.round(event.layerY / (getScale() * subScale))
-          )
-        );
+        clickEvent(new Pos(
+          (targetId[3] - 0) + subScale * Math.round(event.layerX / (getScale() * subScale)),
+          (targetId[2] - 0) + subScale * Math.round(event.layerY / (getScale() * subScale))
+        ));
       });
 
       square.appendChild(button);
       row.appendChild(square);
     }
     getBoardElement().appendChild(row);
-    getBoardElement().style.width = (x * getScale()) + "px";
+    getBoardElement().style.width = x * getScale() + "px";
     getBoardElement().style.height = (y * getScale() + 100) + "px";
     tempGrid.push(row);
   }
@@ -355,9 +356,7 @@ function clickEvent(pos) {
 
   switch (state) {
     case States.PIECE_SELECTED:
-      ws.send(
-        `&M;${stateData.id};${piecePos.x},${piecePos.y}`
-      );
+      ws.send(`&M;${stateData.id};${piecePos.x},${piecePos.y}`);
       break;
     case States.LINE_DRAW_A:
       stateData = {
@@ -482,16 +481,18 @@ class Line {
     });
 
     this.element.className = "line";
-    this.element.id = "line-" + this.id;
+    this.element.id = `line-${this.id}`;
 
     this.element.style.width = this.length * getScale() + "px";
     this.element.style.height = realThickness + "px";
-    this.element.style.position = "absolute";
 
     this.element.style.backgroundColor = color;
     this.element.style.borderColor = color;
     // Crazy transform because the actual value is offset by the subscale
-    this.element.style.transform = `translateY(${-(realThickness / 2 + getScale() * subScale)}px) translateX(${-getScale() * subScale}px) rotate(${this.angle}rad)`;
+    this.element.style.transform =
+      `translateY(${-(realThickness / 2 + getScale() * subScale)}px)` +
+      `translateX(${-getScale() * subScale}px)` +
+      `rotate(${this.angle}rad)`;
 
     this.element.style.left = this.pos.x * getScale() + "px";
     this.element.style.top = this.pos.y * getScale() + "px";
@@ -553,20 +554,18 @@ class Piece {
     });
 
     this.image.className = "piece-image";
-    this.image.id = "piece-image-" + id;
+    this.image.id = `piece-image-${id}`;
     this.image.style.width = getScale() + "px";
     this.image.style.height = getScale() + "px";
     this.image.src = icon;
-    this.image.style.position = "absolute";
     this.element.appendChild(this.image);
 
     this.element.className = "piece";
-    this.element.id = "piece-" + id;
+    this.element.id = `piece-${id}`;
     this.element.title = name;
 
     this.element.style.width = getScale() + "px";
     this.element.style.height = getScale() + "px";
-    this.element.style.position = "absolute";
 
     this.pos = pos;
   }
