@@ -11,9 +11,10 @@ if (localStorage.getItem("scale") === null) {
 }
 
 let board = {
-  "dimensions": [0, 0],
-  "pieces": {},
-  "lines": {}
+  dimensions: [0, 0],
+  pieces: {},
+  lines: {},
+  fill: {}
 }
 
 
@@ -252,11 +253,25 @@ ws.onmessage = (msg) => {
     case "B": // Resize board
       window.location.reload(); // jk, that's too hard, just refresh
       break;
+    case "F":
+      let squareId = data[0].split(",").join("_");
+      let color = data[1];
+      if (color !== "reset") {
+        board.fill[squareId] = {
+          color: color,
+          pattern: data[2]
+        };
+      } else {
+        delete board.fill[squareId];
+      }
+      document.getElementById("")
+      break;
   }
 };
 
 fetch("/api/board/?id=" + args.id).then(response => response.json()).then((json) => {
   board.dimensions = json.dimensions;
+  board.fill = json.fill;
   renderBoard(json.dimensions[0], json.dimensions[1]);
 
   Object.keys(json.pieces).forEach((pieceId, i) => {
@@ -315,8 +330,15 @@ function renderBoard(x, y) {
       var square = document.createElement('div');
       square.className = 'square';
       square.id = `square-${j}`;
+
+      // get the alternate fill color (if it exists)
+      let altFill = board.fill[`${j+1}_${i+1}`];
+      console.log(altFill, i, j);
+      if (altFill !== undefined) {
+        square.style.backgroundColor = altFill.color;
+      }
+
       // this is some basic chess board color logic
-      square.style.backgroundColor = (i + j) % 2 === 0 ? '#35393b' : '#484e51';
       square.style.width = getScale() + "px";
       square.style.height = getScale() + "px";
       square.style.left = getScale() * j + "px";
@@ -326,6 +348,11 @@ function renderBoard(x, y) {
       button.id = `square-button-${i}-${j}`;
       button.style.width = getScale() + "px";
       button.style.height = getScale() + "px";
+      if ((i + j) % 2 === 0) {
+        // i'm using an overlay here so that the color will change with any
+        // background color
+        button.style.backgroundColor = 'var(--main-accent-difference)';
+      }
 
       button.addEventListener("click", event => {
         var targetId = event.target.id.split("-");

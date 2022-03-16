@@ -1,11 +1,18 @@
+:root {
+  --bg-color: #181a1b;
+  --text-color: #dfdfdf;
+  --main-color: #484e51;
+  --accent-color: #35393b;
+  --main-accent-difference: rgba(34, 36, 39, 0.5);
+  --selected-yellow: #ffff00;
+}
+
 html, body {
-  color-scheme: dark;
-  background-color: #181a1b;
+  background-color: var(--bg-color);
   scrollbar-color: #454a4d #202324;
-  color: #ccc;
   overflow: hidden;
   font: 1em Whitney, "Helvetica Neue", Helvetica, Arial, sans-serif;
-  color: white;
+  color: var(--text-color);
 }
 
 body {
@@ -17,7 +24,7 @@ body {
   display: flex;
   width: 100vw;
   height: 100px;
-  background-color: #181a1b;
+  background-color: var(--bg-color);
   list-style-type: none;
   top: 0;
   margin: 0px;
@@ -80,8 +87,8 @@ body {
 
 .menu-input {
   flex: 1;
-  background-color: #484e51;
-  border-color: #35393b;
+  background-color: var(--main-color);
+  border-color: var(--accent-color);
   border-radius: 5px;
   border-width: 3px;
   border-style: solid;
@@ -93,8 +100,8 @@ body {
   height: 80px;
   width: 80px;
   margin: 10px;
-  background-color: #484e51;
-  border-color: #35393b;
+  background-color: var(--main-color);
+  border-color: var(--accent-color);
   border-radius: 10px;
   border-width: 5px;
   border-style: solid;
@@ -109,8 +116,8 @@ body {
   height: 80px;
   width: 80px;
   margin: 10px;
-  background-color: #484e51;
-  border-color: #35393b;
+  background-color: var(--bg-color);
+  border-color: var(--accent-color);
   border-radius: 10px;
   border-width: 5px;
   border-style: solid;
@@ -125,18 +132,6 @@ body {
   border-style: ridge;
   border-right-style: solid;
   border-bottom-style: solid;
-}
-
-.menu-button-selected {
-  cursor: pointer;
-  height: 80px;
-  width: 80px;
-  margin: 10px;
-  background-color: #484e51;
-  border-color: #ff0;
-  border-radius: 10px;
-  border-width: 5px;
-  border-style: solid;
 }
 
 .menu-button-selected:active {
@@ -154,8 +149,8 @@ body {
   height: 80px;
   width: 80px;
   margin: 10px;
-  border-color: #181a1b;
-  background-color: #181a1b;
+  border-color: var(--bg-color);
+  background-color: var(--bg-color);
   border-radius: 100%;
   border-width: 1px;
   border-style: solid;
@@ -164,6 +159,7 @@ body {
 .square {
   z-index: 1;
   position: absolute;
+  background-color: var(--main-color);
 }
 
 .square-button {
@@ -212,7 +208,7 @@ body {
   z-index: 7;
   background-color: rgba(0, 0, 0, 0);
   border-width: 3px;
-  border-color: #ff0;
+  border-color: var(--selected-yellow);
   position: absolute;
 }
 

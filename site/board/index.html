@@ -72,6 +72,21 @@
 
   <!-- delete menu -->
   <div class="hidden-menu" id="delete-menu">
+    <button class="menu-button" id="line-menu-close" title="Cancel">
+      <img class="menu-image" id="line-menu-close-img" src="/icons/cancel.svg"></img>
+    </button>
+    <div class="menu-vertical" id="line-menu-thickness">
+      <h2 class="menu-input-title">Thickness</h2>
+      <input class="menu-input" id="line-menu-thickness-input" type="number" min="1" max="5" value="2"></input>
+    </div>
+    <div class="menu-vertical" id="line-menu-color">
+      <h2 class="menu-input-title">Color</h2>
+      <input class="menu-input" id="line-menu-color-input" type="color" value="#fff"></input>
+    </div>
+  </div>
+
+  <!-- fill menu -->
+  <div class="hidden-menu" id="fill-menu">
     <button class="menu-button" id="delete-menu-close" title="Cancel">
       <img class="menu-image" id="delete-menu-close-img" src="/icons/cancel.svg"></img>
     </button>

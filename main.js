@@ -46,7 +46,7 @@ let sockets = [];
 let sessions = {}
 
 
-const server = https.createServer(auth, (req, res) => {
+const server = https.createServer(auth, (req, res) => {try{
   // Initial 200 status code
   res.statusCode = 200;
 
@@ -194,12 +194,25 @@ const server = https.createServer(auth, (req, res) => {
   // Read the file requested
   fs.readFile(path, (err, data) => {
     if (err) {
-      res.statusCode = 404;
-      res.end("not found");
+      if (err.errno === -2) {
+        res.statusCode = 404;
+        res.end("not found");
+      } else {
+        try {
+          console.error(err);
+          res.statusCode = 500;
+          res.end("failed to read file");
+        } catch (err2) {
+          console.error(err, err2);
+        }
+      }
     } else {
       res.end(data);
     }
   });
+      } catch (e) {
+      	console.log(e);
+      }
 }).listen(config.port, (err) => {
   console.log(`Listening on 0.0.0.0:${config.port}`)
   var uid = parseInt(process.env.SUDO_UID);
@@ -301,6 +314,19 @@ wss.on('connection', function(socket) {
           sessions[socket.sessionId].board = defaultBoard();
           out = "&B;30,15";
           break;
+        case "F":
+          let squareId = data[0].split(",").join("_");
+          let fillColor = data[1];
+          let pattern = ["cross", "diagonal"].includes(data[2]) ? data[2] : "solid";
+          if (fillColor !== "reset") {
+            sessions[socket.sessionId].board.fill[squareId] = {
+              color: fillColor,
+              pattern: pattern
+            };
+          } else {
+            delete sessions[socket.sessionId].board.fill[squareId];
+          }
+          out = `&F;${data[0]};${fillColor};${pattern}`;
         default:
           return;
       }
@@ -355,9 +381,15 @@ function genInviteCode() {
 
 function defaultBoard() {
   return {
-    "dimensions": [30, 15],
-    "pieces": {},
-    "lines": {},
-    "pieceCount": 0
+    dimensions: [30, 15],
+    pieces: {},
+    lines: {},
+    pieceCount: 0,
+    fill: {
+      "1_2": {
+        color: "#fff",
+        pattern: null
+      }
+    }
   };
 }
