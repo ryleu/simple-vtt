@@ -1,4 +1,7 @@
 {
+  "name": "simple-vtt",
+  "version": "1.0.0",
+  "homepage": "https://vtt.ryleu.me/",
   "dependencies": {
     "crypto-js": "^4.1.1",
     "fs": "^0.0.1-security",

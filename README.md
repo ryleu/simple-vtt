@@ -6,6 +6,7 @@ A simple, fast, system-less Virtual Table Top.
  - [Running](#running)
  - [Protocol](#protocol)
  - [HTTP](#http)
+ - [Roadmap](#roadmap)
  - [Attribution](#attribution)
 
 ## Configuration
@@ -13,11 +14,11 @@ A simple, fast, system-less Virtual Table Top.
 
 ```json
 {
-	"port": 443,
-	"auth": {
-		"key": "/path/to/https/privkey.pem",
-		"cert": "/path/to/https/fullchain.pem"
-	}
+  "port": 443,
+  "auth": {
+    "key": "/path/to/https/privkey.pem",
+    "cert": "/path/to/https/fullchain.pem"
+  }
 }
 ```
 
@@ -25,27 +26,30 @@ A simple, fast, system-less Virtual Table Top.
 
 Install Node.JS and NPM and then run `npm i` in the project root.
 
-Use `sudo ./main.js` to start the server.
+Use `node main.js` to start the server.
 
 ## Protocol
 S-VTT uses a straightforward spec for websocket communication:
 
-| Action | Request | Response | Description |
-|:---:|:---:|:---:|:---|
-| Add a piece | `&S;<name>;<x>,<y>;<icon>` | `&S;<id>;<name>;<x>,<y>;<icon>` | `id`: Unique identifier <br /> `name`: Base 64 encoded piece name <br /> `x,y`: Integer coordinate pair <br /> `icon`: Base 64 encoded icon URL |
-| Move a piece | `&M;<id>;<x>,<y>` | `&M;<id>;<x>,<y>` | `id`: Unique identifier <br /> `x,y`: Integer coordinate pair |
-| Delete a piece | `&D;<id>` | `&D;<id>` | `id`: Unique identifier |
-| Create a line | `&L;<x1>,<y1>;<x2>,<y2>;<thickness>;<color>` | `&L;<x1>_<y1>__<x2>_<y2>;<x1>,<y1>;<x2>,<y2>;<thickness>` | `x1,y1`: Initial coordinate pair <br /> `x2,y2`: End coordinate pair <br /> `thickness`: Thickness of the line <br /> Hex color code |
-| Remove a line | `&R;<x1>_<y1>__<x2>_<y2>` | `&R;<x1>_<y1>__<x2>_<y2>` | `x1,y1`: Initial integer coordinate pair <br /> `x2,y2`: End integer coordinate pair |
-| Re-size the board | `&B;<x>,<y>` | `&B;<x>,<y>` | `x,y` Integer length / width pair |
-| Clear the board | `&C` | `&B;30,15` | None |
-| Join a room | `&A;<invite>` | `&A;<invite>` | Invite code |
+|      Action       |                   Request                    |                         Response                          | Description                                                                                                                                     |
+|:-----------------:|:--------------------------------------------:|:---------------------------------------------------------:|:------------------------------------------------------------------------------------------------------------------------------------------------|
+|    Add a piece    |          `&S;<name>;<x>,<y>;<icon>`          |              `&S;<id>;<name>;<x>,<y>;<icon>`              | `id`: Unique identifier <br /> `name`: Base 64 encoded piece name <br /> `x,y`: Integer coordinate pair <br /> `icon`: Base 64 encoded icon URL |
+|   Move a piece    |              `&M;<id>;<x>,<y>`               |                     `&M;<id>;<x>,<y>`                     | `id`: Unique identifier <br /> `x,y`: Integer coordinate pair                                                                                   |
+|  Delete a piece   |                  `&D;<id>`                   |                         `&D;<id>`                         | `id`: Unique identifier                                                                                                                         |
+|   Create a line   | `&L;<x1>,<y1>;<x2>,<y2>;<thickness>;<color>` | `&L;<x1>_<y1>__<x2>_<y2>;<x1>,<y1>;<x2>,<y2>;<thickness>` | `x1,y1`: Initial coordinate pair <br /> `x2,y2`: End coordinate pair <br /> `thickness`: Thickness of the line <br /> Hex color code            |
+|   Remove a line   |          `&R;<x1>_<y1>__<x2>_<y2>`           |                 `&R;<x1>_<y1>__<x2>_<y2>`                 | `x1,y1`: Initial integer coordinate pair <br /> `x2,y2`: End integer coordinate pair                                                            |
+| Re-size the board |                 `&B;<x>,<y>`                 |                       `&B;<x>,<y>`                        | `x,y` Integer length / width pair                                                                                                               |
+|  Clear the board  |                     `&C`                     |                        `&B;30,15`                         | None                                                                                                                                            |
+|    Join a room    |                `&A;<invite>`                 |                       `&A;<invite>`                       | Invite code                                                                                                                                     |
 
-There are also an HTTP API at `/api`:
+There are also an HTTP API at `/api/`:
 
-| Endpoint | Description |
+|         Endpoint          | Description                                                                |
+|:-------------------------:|:---------------------------------------------------------------------------|
 | `/api/board/?id=<invite>` | GET to get the board for <invite> or PUT to load in a new one for <invite> |
-| `/api/new/` | POST to generate a new blank board, responds with `{"invite": "<invite>"}` |
+|        `/api/new/`        | POST to generate a new blank board, responds with `{"invite": "<invite>"}` |
+
+Any other path is sourced from `site/`.
 
 ## HTTP
 You could change this on line 5:
@@ -58,6 +62,16 @@ const https = require("http");
 ```
 Then, you have to remove TLS file references and change the websocket URL in `site/board/index.js` from `wss://` to `ws://`.
 
+## Roadmap
+
+ - [x] Basic HTTPS communication
+ - [x] Rendering
+ - [x] Lines
+ - [x] Pieces
+ - [x] Saving and loading
+ - [ ] Tile fills
+ - [ ] Game master
+ - [ ] Heroku deploy support
 
 ## Attribution
 Icons are from the [Papirus Icon Theme](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme).

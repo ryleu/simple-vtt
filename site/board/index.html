@@ -2,155 +2,146 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Simple VTT</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Simple VTT</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body id="body">
-  <h1 id="js-message">Please enable JavaScript to use this site.</h1>
-  <script src="index.js"></script>
+<h1 id="js-message">Please enable JavaScript to use this site.</h1>
+<script src="index.js"></script>
 
-  <!-- main menu -->
-  <div class="hidden-menu" id="main-menu">
+<!-- main menu -->
+<div class="hidden-menu" id="main-menu">
     <button class="menu-button" id="menu-create-piece" title="Add Piece">
-      <img class="menu-image" id="menu-create-piece-img" src="/icons/plus.svg"></img>
+        <img class="menu-image" id="menu-create-piece-img" src="/icons/plus.svg"  alt="Add Piece"/>
     </button>
     <button class="menu-button" id="menu-create-line" title="Draw Lines">
-      <img class="menu-image" id="menu-create-line-img" src="/icons/pencil.svg"></img>
+        <img class="menu-image" id="menu-create-line-img" src="/icons/pencil.svg"  alt="Draw Lines"/>
     </button>
     <button class="menu-button" id="menu-delete" title="Delete Elements">
-      <img class="menu-image" id="menu-delete-img" src="/icons/trash.svg"></img>
+        <img class="menu-image" id="menu-delete-img" src="/icons/trash.svg"  alt="Delete Elements"/>
     </button>
     <div class="flexbox">
-      <h1 id="invite-code" style="position: relative; top: calc(50px - 1.25em); font: 3em; text-align: center;"></h1>
+        <h1 id="invite-code" style="position: relative; top: calc(50px - 1.25em); font-size: 3em; text-align: center;"></h1>
     </div>
     <button class="menu-button" id="menu-undo" title="Undo" disabled>
-      <img class="menu-image" id="menu-undo-img" src="/icons/undo.svg"></img>
+        <img class="menu-image" id="menu-undo-img" src="/icons/undo.svg"  alt="Undo"/>
     </button>
     <button class="menu-button" id="menu-config" title="Settings">
-      <img class="menu-image" id="menu-config-img" src="/icons/gear.svg"></img>
+        <img class="menu-image" id="menu-config-img" src="/icons/gear.svg"  alt="Settings"/>
     </button>
     <div class="endcap"></div>
-  </div>
+</div>
 
-  <!-- piece add menu -->
-  <div class="hidden-menu" id="add-piece-menu">
+<!-- piece add menu -->
+<div class="hidden-menu" id="add-piece-menu">
     <button class="menu-button" id="piece-menu-close" title="Cancel">
-      <img class="menu-image" id="piece-menu-close-img" src="/icons/cancel.svg"></img>
+        <img class="menu-image" id="piece-menu-close-img" src="/icons/cancel.svg"  alt="Cancel"/>
     </button>
     <div class="menu-vertical" id="piece-menu-name">
-      <h2 class="menu-input-title">Name</h2>
-      <input class="menu-input" id="piece-menu-name-input" type="text"></input>
+        <h2 class="menu-input-title">Name</h2>
+        <input class="menu-input" id="piece-menu-name-input" type="text" />
     </div>
     <div class="menu-vertical" id="piece-menu-url">
-      <h2 class="menu-input-title">Icon URL</h2>
-      <input class="menu-input" id="piece-menu-icon-input" type="url"></input>
+        <h2 class="menu-input-title">Icon URL</h2>
+        <input class="menu-input" id="piece-menu-icon-input" type="url" />
     </div>
     <button class="menu-button" id="piece-menu-load" title="Load Preview">
-      <img class="menu-image" id="piece-menu-load-img" src="/icons/refresh.svg"></img>
+        <img class="menu-image" id="piece-menu-load-img" src="/icons/refresh.svg"  alt="Load Preview"/>
     </button>
-    <img class="menu-preview-image" id="piece-menu-preview"></img>
+    <img class="menu-preview-image" id="piece-menu-preview" alt="" src="" />
   </div>
 
-  <!-- line add menu -->
-  <div class="hidden-menu" id="add-line-menu">
+<!-- line add menu -->
+<div class="hidden-menu" id="add-line-menu">
     <button class="menu-button" id="line-menu-close" title="Cancel">
-      <img class="menu-image" id="line-menu-close-img" src="/icons/cancel.svg"></img>
+        <img class="menu-image" id="line-menu-close-img" src="/icons/cancel.svg"  alt="Cancel"/>
     </button>
     <div class="menu-vertical" id="line-menu-thickness">
-      <h2 class="menu-input-title">Thickness</h2>
-      <input class="menu-input" id="line-menu-thickness-input" type="number" min="1" max="5" value="2"></input>
+        <h2 class="menu-input-title">Thickness</h2>
+        <input class="menu-input" id="line-menu-thickness-input" type="number" min="1" max="5" value="2" />
     </div>
     <div class="menu-vertical" id="line-menu-color">
-      <h2 class="menu-input-title">Color</h2>
-      <input class="menu-input" id="line-menu-color-input" type="color" value="#fff"></input>
+        <h2 class="menu-input-title">Color</h2>
+        <input class="menu-input" id="line-menu-color-input" type="color" value="#fff" />
     </div>
-  </div>
+</div>
 
-  <!-- delete menu -->
-  <div class="hidden-menu" id="delete-menu">
-    <button class="menu-button" id="line-menu-close" title="Cancel">
-      <img class="menu-image" id="line-menu-close-img" src="/icons/cancel.svg"></img>
-    </button>
-    <div class="menu-vertical" id="line-menu-thickness">
-      <h2 class="menu-input-title">Thickness</h2>
-      <input class="menu-input" id="line-menu-thickness-input" type="number" min="1" max="5" value="2"></input>
-    </div>
-    <div class="menu-vertical" id="line-menu-color">
-      <h2 class="menu-input-title">Color</h2>
-      <input class="menu-input" id="line-menu-color-input" type="color" value="#fff"></input>
-    </div>
-  </div>
-
-  <!-- fill menu -->
-  <div class="hidden-menu" id="fill-menu">
+<!-- delete menu -->
+<div class="hidden-menu" id="delete-menu">
     <button class="menu-button" id="delete-menu-close" title="Cancel">
-      <img class="menu-image" id="delete-menu-close-img" src="/icons/cancel.svg"></img>
+        <img class="menu-image" id="delete-menu-close-img" src="/icons/cancel.svg" alt="Cancel" />
     </button>
-    <h1 style="position: relative; top: calc(50px - 1.25em); color: #ff0000; font: 3em;">Delete Mode</h1>
-  </div>
+</div>
 
-  <!-- config menu -->
-  <div class="hidden-menu" id="config-menu">
+<!-- fill menu -->
+<div class="hidden-menu" id="fill-menu">
+    <button class="menu-button" id="fill-menu-close" title="Cancel">
+        <img class="menu-image" id="fill-menu-close-img" src="/icons/cancel.svg" alt="Cancel" />
+    </button>
+    <h1 style="position: relative; top: calc(50px - 1.25em); color: #ff0000; font-size: 3em;">Delete Mode</h1>
+</div>
+
+<!-- config menu -->
+<div class="hidden-menu" id="config-menu">
     <button class="menu-button" id="config-menu-close" title="Cancel">
-      <img class="menu-image" id="config-menu-close-img" src="/icons/cancel.svg"></img>
+        <img class="menu-image" id="config-menu-close-img" src="/icons/cancel.svg" alt="Cancel" />
     </button>
 
     <div class="menu-vertical" id="config-menu-scale">
-      <h2 class="menu-input-title">Scale</h2>
-      <input class="menu-input" id="config-menu-scale-input" type="number" min="50" max="300"></input>
+        <h2 class="menu-input-title">Scale</h2>
+        <input class="menu-input" id="config-menu-scale-input" type="number" min="50" max="300" />
     </div>
     <button class="menu-button" id="config-menu-rescale" title="Apply Scale">
-      <img class="menu-image" id="config-menu-rescale-img" src="/icons/refresh.svg"></img>
+        <img class="menu-image" id="config-menu-rescale-img" src="/icons/refresh.svg"  alt="Apply Scale"/>
     </button>
 
     <div class="flexspace"></div>
     <div class="menu-vertical" id="config-menu-dims">
-      <h2 class="menu-input-title">Dimensions</h2>
-      <div class="menu-vertical-split" id="config-menu-dims-split">
-        <input class="menu-input" id="config-menu-dims-input-x" type="number" min="1" max="100"></input>
-        <p style="width: 1.5em; text-align: center;">X</p>
-        <input class="menu-input" id="config-menu-dims-input-y" type="number" min="1" max="100"></input>
-      </div>
+        <h2 class="menu-input-title">Dimensions</h2>
+        <div class="menu-vertical-split" id="config-menu-dims-split">
+            <input class="menu-input" id="config-menu-dims-input-x" type="number" min="1" max="100" />
+            <p style="width: 1.5em; text-align: center;">X</p>
+            <input class="menu-input" id="config-menu-dims-input-y" type="number" min="1" max="100" />
+        </div>
     </div>
     <button class="menu-button" id="config-menu-dims-apply" title="Apply Dimensions">
-      <img class="menu-image" id="config-menu-dims-apply-img" src="/icons/refresh.svg"></img>
+        <img class="menu-image" id="config-menu-dims-apply-img" src="/icons/refresh.svg"  alt="Apply Dimensions"/>
     </button>
 
     <div class="flexspace"></div>
     <button class="menu-button" id="config-menu-reset" title="Reset">
-      <img class="menu-image" id="config-menu-reset-img" src="/icons/trash.svg"></img>
+        <img class="menu-image" id="config-menu-reset-img" src="/icons/trash.svg"  alt="Reset"/>
     </button>
 
     <div class="flexbox"></div>
     <div class="menu-vertical" id="config-menu-upload">
-      <h2 class="menu-input-title">Load JSON</h2>
-      <div class="menu-vertical-split" id="config-menu-upload-split">
-        <label class="menu-input" for="config-menu-upload-input" style="width: 50%; margin-right: 5px;">
-          <p style="margin-bottom: 0; margin-top: calc(25% - 1.5ex); text-align: center;">Select File</p>
-          <input id="config-menu-upload-input" type="file" accept="application/json" style="visibility: collapse;"></input>
-        </label>
-        <p style="flex: 1; width: 50%; height: 100%; margin: 0; margin-left: 5px;" id="config-menu-upload-selected">No file selected...</p>
-      </div>
+        <h2 class="menu-input-title">Load JSON</h2>
+        <div class="menu-vertical-split" id="config-menu-upload-split">
+            <label class="menu-input" for="config-menu-upload-input" style="width: 50%; margin-right: 5px;">
+                <p style="margin-bottom: 0; margin-top: calc(25% - 1.5ex); text-align: center;">Select File</p>
+                <input id="config-menu-upload-input" type="file" accept="application/json" style="visibility: collapse;" />
+            </label>
+            <p style="flex: 1; width: 50%; height: 100%; margin: 0; margin-left: 5px;" id="config-menu-upload-selected">No file selected...</p>
+        </div>
     </div>
-    <button class="menu-button" id="config-menu-upload-apply" title="Apply JSON">
-      <img class="menu-image" id="config-menu-upload-apply-img" src="/icons/refresh.svg"></img>
+    <button class="menu-button" id="config-menu-upload-apply" title="Apply Board">
+        <img class="menu-image" id="config-menu-upload-apply-img" src="/icons/refresh.svg" alt="Apply Board" />
     </button>
 
     <div class="flexspace"></div>
     <a class="menu-buttonlike" id="config-menu-download" title="Download JSON" href="/api/board" download="board.json">
-      <img class="menu-image" id="menu-config-img" src="/icons/download.svg" style="top: 9px; left: 6px; position: relative;"></img>
+        <img class="menu-image" id="menu-config-download-img" src="/icons/download.svg" style="top: 9px; left: 6px; position: relative;"  alt="Download Board"/>
     </a>
     <div class="endcap"></div>
-  </div>
+</div>
 
-  <!-- board -->
-  <div id="board-holder" style="display: none;">
+<!-- board -->
+<div id="board-holder" style="display: none;">
     <div id="board"></div>
-  </div>
+</div>
 </body>
-
 </html>
