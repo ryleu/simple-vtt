@@ -107,7 +107,7 @@ const noJson =
 ⠀⠀⠀⠀⠁⠇⠡⠩⡫⢿⣝⡻⡮⣒⢽⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ————————————————————————————————————`;
 
-const config = JSON.parse(fs.readFileSync("config.json").toString());
+const config = httpOrS === "https" ? JSON.parse(fs.readFileSync("config.json").toString()) : {};
 config.port = httpOrS === "https" ? 443 : 80;
 
 const auth = {};
