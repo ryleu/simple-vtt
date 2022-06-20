@@ -7,5 +7,9 @@
     "fs": "^0.0.1-security",
     "https": "^1.0.0",
     "ws": "^8.5.0"
+  },
+  "scripts": {
+    "start": "env HTTP=true node main.js",
+    "start_s": "sudo node main.js"
   }
 }

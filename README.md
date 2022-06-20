@@ -25,7 +25,7 @@ A simple, fast, system-less Virtual Table Top.
 
 Install Node.JS and NPM and then run `npm i` in the project root.
 
-Use `node main.js` to start the server.
+Use `npm start_s` to start the server with SSL.
 
 ## Protocol
 S-VTT uses a straightforward spec for websocket communication:
