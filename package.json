@@ -9,7 +9,8 @@
     "ws": "^8.5.0"
   },
   "scripts": {
-    "start": "sudo env HTTP=true node main.js",
-    "start_s": "sudo node main.js"
+    "start": "env HTTP=true PORT=$PORT node main.js",
+    "start_i": "sudo env HTTP=true PORT=80 node main.js",
+    "start_s": "sudo env PORT=443 node main.js"
   }
 }
