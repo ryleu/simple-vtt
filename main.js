@@ -4,19 +4,87 @@ const WebSocket = require('ws');
 const MD5 = require("crypto-js/md5");
 const https = require("https");
 const fs = require("fs");
-
-const extRe = /\.[a-z]+$/;
 const apiRe = /\/api/;
-const evilReqRe = /\.\.|\/\//;
 
-const insults = [
-    "I'm a teapot\nI serve pages, not the entire contents of my hard drive.",
-    "Sorry, but your mom is in the server room, I'm having trouble reaching the data.",
-    "Nope, sorry, this can't be completed because your mom is nearby. Her gravitational field has moved all of the drives out of reach.",
-    "I'm too busy taking care of your mom to send this file.",
-    "I'm trying to get your mom out of the refrigerator, please wait.",
-    "I've come to bargain - stop sending these requests, and I'll break down your wall for free so your mom can fit through."
-];
+function cacheFiles(head, fileList) {
+    const outObj = {};
+
+    for (let i = 0; i < fileList.length; i++) {
+        switch (fileList[i].type) {
+            case "file":
+                let path = `${head}/${fileList[i].name}`;
+
+                let contentType = "text/plain";
+                const extension = path.split(".").pop();
+
+                switch (extension) {
+                    case "html":
+                        contentType = "text/html";
+                        break;
+                    case "css":
+                        contentType = "text/css";
+                        break;
+                    case "js":
+                        contentType = "text/javascript";
+                        break;
+                    case "svg":
+                        contentType = "image/svg+xml";
+                        break;
+                }
+
+                try {
+                    outObj[path] = { data: fs.readFileSync(path).toString(), type: contentType };
+                } catch (e) {
+                    if (e.errno === -2) {
+                        outObj[path] = { data: "not found", type: "error" };
+                    } else {
+                        throw e;
+                    }
+                }
+                break;
+            case "dir":
+                const toAppend = cacheFiles(`${head}/${fileList[i].name}`, fileList[i].files);
+                const toAppendKeys = Object.keys(toAppend);
+
+                for (let j = 0; j < toAppendKeys.length; j++) {
+                    const toAppendKey = toAppendKeys[j];
+                    outObj[toAppendKey] = toAppend[toAppendKey];
+                }
+        }
+    }
+
+    return outObj;
+}
+
+const Files = Object.freeze(cacheFiles("site", [
+    { name: "index.html", type: "file" },
+    { name: "index.js", type: "file" },
+    { name: "style.css", type: "file" },
+    { name: "favicon.ico", type: "file" },
+    {
+        name: "icons",
+        type: "dir",
+        files: [
+            { name: "cancel.svg", type: "file" },
+            { name: "download.svg", type: "file" },
+            { name: "gear.svg", type: "file" },
+            { name: "pencil.svg", type: "file" },
+            { name: "plus.svg", type: "file" },
+            { name: "refresh.svg", type: "file" },
+            { name: "trash.svg", type: "file" },
+            { name: "undo.svg", type: "file" }
+        ]
+    },
+    {
+        name: "board",
+        type: "dir",
+        files: [
+            { name: "index.html", type: "file" },
+            { name: "index.js", type: "file" },
+            { name: "style.css", type: "file" }
+        ]
+    }
+]));
 
 const noJson =
     `———————————No JSON?——————————————————
@@ -47,6 +115,8 @@ let sessions = {}
 
 
 const server = https.createServer(auth, (req, res) => {
+    console.log(`${req.headers["cf-connecting-ip"]} -> ${req.url}`);
+
     try {
         // Initial 200 status code
         res.statusCode = 200;
@@ -177,61 +247,18 @@ const server = https.createServer(auth, (req, res) => {
             path += "index.html";
         }
 
-        // If the path has funky spooky stuff in it, yeet it to the abyss
-        if (path.match(evilReqRe)) {
-            res.statusCode = 418;
-            res.setHeader("Content-Type", "text/plain");
-            res.end(insults[path.length % insults.length]);
-            return;
-        }
+        const fileData = Files[path];
 
-        // If the file has an extension (it always should), use it
-        let extension = path.match(extRe);
-        if (extension) {
-            extension = extension[0];
+        if (fileData === undefined || (fileData.type === "error" && fileData.data === "not found")) {
+            res.statusCode = 404;
+            res.end("not found");
+        } else if (fileData.type === "error") {
+            res.statusCode = 500;
+            res.end(fileData.data);
         } else {
-            extension = null;
+            res.setHeader("Content-Type", fileData.type);
+            res.end(fileData.data);
         }
-
-        // Set the correct content type based on the extension
-        switch (extension) {
-            case ".html":
-                res.setHeader("Content-Type", "text/html");
-                break;
-            case ".css":
-                res.setHeader("Content-Type", "text/css");
-                break;
-            case ".js":
-                res.setHeader("Content-Type", "text/javascript");
-                break;
-            case ".svg":
-                res.setHeader("Cache-Control", "private");
-                res.setHeader("Content-Type", "image/svg+xml");
-                break;
-            default:
-                res.setHeader("Content-Type", "text/plain");
-                break;
-        }
-
-        // Read the file requested
-        fs.readFile(path, (err, data) => {
-            if (err) {
-                if (err.errno === -2) {
-                    res.statusCode = 404;
-                    res.end("not found");
-                } else {
-                    try {
-                        console.error(err);
-                        res.statusCode = 500;
-                        res.end("failed to read file");
-                    } catch (err2) {
-                        console.error(err, err2);
-                    }
-                }
-            } else {
-                res.end(data);
-            }
-        });
     } catch (e) {
         console.log(e);
     }
@@ -240,7 +267,7 @@ const server = https.createServer(auth, (req, res) => {
     const uid = parseInt(process.env.SUDO_UID);
     // Set our server's uid to that user
     if (uid) process.setuid(uid);
-    console.log('Server\'s UID is now ' + process.getuid());
+    console.log(`Server's UID is now ${process.getuid()}`);
 
     if (err) {
         console.error(err);
