@@ -1,6 +1,14 @@
 # simple-vtt
 A simple, fast, system-less Virtual Table Top.
 
+If you want to use it **right now**, you can use this handy button here to
+launch it on Heroku:
+
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/ryleu/simple-vtt/tree/main)
+
+A free demo (that may be laggy and should not be used for actual games) can be
+found at <http://tabletop.ryleu.me>.
+
 **Table of Contents**
  - [Configuration](#configuration)
  - [Running](#running)
@@ -21,11 +29,15 @@ A simple, fast, system-less Virtual Table Top.
 }
 ```
 
+The port must be set through the `$PORT` environment variable.
+
 ## Running
 
 Install Node.JS and NPM and then run `npm i` in the project root.
 
-Use `npm run start_s` to start the server with SSL.
+Use `npm run start_s` to start the server with HTTPS. Use
+`rpm run start_i` to run an HTTP version. Running `npm start` will
+launch the Heroku version of simple-vtt.
 
 ## Protocol
 S-VTT uses a straightforward spec for websocket communication:
