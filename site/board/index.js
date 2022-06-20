@@ -36,13 +36,19 @@ let stateData = null;
 // </states>
 
 
-let elementGrid = []
+let elementGrid = [];
 
 let wsReady = false;
 let jsonReady = false;
 
+let websocketURL;
+if (document.URL.split(":")[0] === "https") {
+    websocketURL = `wss://${document.URL.split("//")[1].split("/")[0]}:443`
+} else {
+    websocketURL = `ws://${document.URL.split("//")[1].split("/")[0]}:80`
+}
 
-let ws = new WebSocket(`wss://${document.URL.split("//")[1].split("/")[0]}:443`);
+let ws = new WebSocket(websocketURL);
 
 ws.onopen = () => {
     ws.send(`&A;${args.id}`);

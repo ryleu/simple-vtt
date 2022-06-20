@@ -14,7 +14,6 @@ A simple, fast, system-less Virtual Table Top.
 
 ```json
 {
-  "port": 443,
   "auth": {
     "key": "/path/to/https/privkey.pem",
     "cert": "/path/to/https/fullchain.pem"

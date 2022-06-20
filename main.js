@@ -2,7 +2,11 @@
 
 const WebSocket = require('ws');
 const MD5 = require("crypto-js/md5");
-const https = require("https");
+let httpOrS = "https"
+if (process.env.HTTP === "true") {
+    httpOrS = "http"
+}
+const https = require(httpOrS);
 const fs = require("fs");
 const apiRe = /\/api/;
 
@@ -104,11 +108,14 @@ const noJson =
 ————————————————————————————————————`;
 
 const config = JSON.parse(fs.readFileSync("config.json").toString());
+config.port = httpOrS === "https" ? 443 : 80;
 
-const auth = {
-    key: fs.readFileSync(config.auth.key),
-    cert: fs.readFileSync(config.auth.cert)
-};
+const auth = {};
+
+if (httpOrS === "https") {
+    auth.key = fs.readFileSync(config.auth.key);
+    auth.cert = fs.readFileSync(config.auth.cert);
+}
 
 let sockets = [];
 let sessions = {}
