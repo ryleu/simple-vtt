@@ -52,6 +52,32 @@ ws.onopen = () => {
     document.getElementById("board-holder").style.display = "inherit";
     document.getElementById("invite-code").innerHTML = `Invite: ${args.id}`;
     document.getElementById("config-menu-download").href = `/api/board/?id=${args.id}`;
+    let downloadButton = document.getElementById("config-menu-download");
+    downloadButton.addEventListener("click", () => {
+        if (ws.readyState === ws.OPEN) {
+            const link = document.createElement("a");
+            link.download = "board.json";
+            link.href = `/api/board/?id=${args.id}`;
+            link.click();
+        } else {
+            let boardString = JSON.stringify(board);
+            navigator.clipboard.writeText(boardString).then(() => {
+                const boardElement = document.getElementById("board");
+                boardElement.innerHTML = "";
+
+                const label = document.createElement("h1");
+                label.className = "warning";
+                label.textContent = "Board copied to clipboard because the site was unreachable.";
+
+                boardElement.appendChild(label);
+
+                const labelText = document.createElement("p");
+                labelText.textContent = boardString;
+
+                boardElement.appendChild(labelText);
+            });
+        }
+    });
 
     wsReady = true;
 
@@ -269,6 +295,10 @@ ws.onmessage = (msg) => {
     }
 };
 
+ws.onclose = () => {
+    document.getElementById("invite-code").innerHTML = "DISCONNECTED";
+}
+
 fetch("/api/board/?id=" + args.id).then(response => response.json()).then((json) => {
     board.dimensions = json.dimensions;
     board.fill = json.fill;
@@ -333,7 +363,6 @@ function renderBoard(x, y) {
 
             // get the alternate fill color (if it exists)
             let altFill = board.fill[`${j+1}_${i+1}`];
-            console.log(altFill, i, j);
             if (altFill !== undefined) {
                 square.style.backgroundColor = altFill.color;
             }
@@ -598,7 +627,7 @@ class Piece {
         this.element.style.width = getScale() + "px";
         this.element.style.height = getScale() + "px";
 
-        this.pos = pos;
+        this.pos = new Pos(pos[0], pos[1]);
     }
 
     set pos(newPos) {
@@ -614,6 +643,7 @@ class Piece {
         try {
             elementGrid[newPos.y - 1].appendChild(this.element);
         } catch (e) {
+            console.error(newPos);
             console.error(e);
             ws.send(`&D;${this.id}`);
         }

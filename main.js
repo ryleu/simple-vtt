@@ -47,173 +47,194 @@ let sessions = {}
 
 
 const server = https.createServer(auth, (req, res) => {
-    try{
-    // Initial 200 status code
-    res.statusCode = 200;
+    try {
+        // Initial 200 status code
+        res.statusCode = 200;
 
-    // If this is an api request, use different handling
-    if (req.url.match(apiRe)) {
-        let data = "";
-        req.on("data", chunk => {
-            data += chunk;
-        });
-        req.on("end", () => {
-            let url = req.url.split("?");
-            let resource = url[0];
+        // If this is an api request, use different handling
+        if (req.url.match(apiRe)) {
+            let data = "";
+            req.on("data", chunk => {
+                data += chunk;
+            });
+            req.on("end", () => {
+                let url = req.url.split("?");
+                let resource = url[0];
 
-            if (resource[resource.length - 1] !== "/") {
-                resource += "/";
-            }
+                if (resource[resource.length - 1] !== "/") {
+                    resource += "/";
+                }
 
-            let args = {};
-            (url[1] ? url[1].split("&") : []).forEach((rawArg) => {
-                let arg = rawArg.split("=");
-                args[arg[0]] = arg[1];
+                let args = {};
+                (url[1] ? url[1].split("&") : []).forEach((rawArg) => {
+                    let arg = rawArg.split("=");
+                    args[arg[0]] = arg[1];
+                });
+
+                switch (resource) {
+                    case "/api/board/":
+                        res.setHeader("Allow", "GET, PUT");
+                        let id = args.id;
+                        if (!args.id || !sessions[id]) {
+                            res.statusCode = 403;
+                            res.end("There is no session with that ID.");
+                            break;
+                        }
+
+                        switch (req.method) {
+                            case "GET":
+                                res.setHeader("Content-Type", "application/json");
+                                res.end(JSON.stringify(sessions[args.id].board));
+                                break;
+                            case "PUT":
+                                if (req.headers["content-type"] !== "application/json") {
+                                    res.statusCode = 400;
+                                    res.end(noJson + "\nPlease use application/json");
+                                    break;
+                                }
+                                let json;
+                                try {
+                                    json = JSON.parse(data);
+                                } catch (e) {
+                                    res.statusCode = 400;
+                                    res.end(noJson + "\nYour JSON isn't JSON.");
+                                    break;
+                                }
+
+                                if (json.dimensions === undefined ||
+                                    json.pieces === undefined ||
+                                    json.lines === undefined) {
+                                    res.statusCode = 400;
+                                    res.end(noJson + "\nYour JSON is dog poo.");
+                                    break;
+                                }
+
+                                const pieceKeys = Object.keys(json.pieces);
+
+                                if (json.pieceCount === undefined) {
+                                    let highest = 0;
+
+                                    for (let i = 0; i < pieceKeys.length; i++) {
+                                        const piece = json.pieces[pieceKeys[i]];
+                                        const pieceNumber = piece.id.split("-")[0] - 0;
+                                        highest = Math.max(highest, pieceNumber);
+                                    }
+                                }
+
+                                for (let i = 0; i < pieceKeys.length; i++) {
+                                    if (json.pieces.pos === undefined) {
+                                        const pos = json.pieces[pieceKeys[i]]._pos;
+                                        json.pieces[pieceKeys[i]].pos = [pos.x, pos.y];
+                                        delete json.pieces[pieceKeys[i]]._pos;
+                                    }
+                                }
+
+                                sessions[args.id].board = json;
+
+                                res.end("Successfully applied new board.");
+
+                                sessions[args.id].sockets.forEach(s => s.send(`&B`));
+                                break;
+                            default:
+                                res.statusCode = 405;
+                                res.end();
+                                break;
+                        }
+                        break;
+                    case "/api/new/":
+                        res.setHeader("Allow", "POST");
+                        switch (req.method) {
+                            case "POST":
+                                let invite = genInviteCode();
+                                sessions[invite] = {
+                                    board: defaultBoard(),
+                                    sockets: [],
+                                    hasBeenLoaded: false
+                                };
+                                res.setHeader("Content-Type", "application/json");
+                                res.end(`{"invite": "${invite}"}`);
+                                break;
+                            default:
+                                res.statusCode = 405;
+                                res.end();
+                                break;
+                        }
+                        break;
+                    default:
+                        res.setHeader("Content-Type", "text/plain");
+                        res.statusCode = 404
+                        res.end();
+                        break;
+                }
             });
 
-            switch (resource) {
-                case "/api/board/":
-                    res.setHeader("Allow", "GET, PUT");
-                    let id = args.id;
-                    if (!args.id || !sessions[id]) {
-                        res.statusCode = 403;
-                        res.end("There is no session with that ID.");
-                        break;
+            return;
+        }
+
+        // Start building the file request path
+        let path = "site" + req.url.split("?")[0];
+        if (path[path.length - 1] === "/") {
+            path += "index.html";
+        }
+
+        // If the path has funky spooky stuff in it, yeet it to the abyss
+        if (path.match(evilReqRe)) {
+            res.statusCode = 418;
+            res.setHeader("Content-Type", "text/plain");
+            res.end(insults[path.length % insults.length]);
+            return;
+        }
+
+        // If the file has an extension (it always should), use it
+        let extension = path.match(extRe);
+        if (extension) {
+            extension = extension[0];
+        } else {
+            extension = null;
+        }
+
+        // Set the correct content type based on the extension
+        switch (extension) {
+            case ".html":
+                res.setHeader("Content-Type", "text/html");
+                break;
+            case ".css":
+                res.setHeader("Content-Type", "text/css");
+                break;
+            case ".js":
+                res.setHeader("Content-Type", "text/javascript");
+                break;
+            case ".svg":
+                res.setHeader("Cache-Control", "private");
+                res.setHeader("Content-Type", "image/svg+xml");
+                break;
+            default:
+                res.setHeader("Content-Type", "text/plain");
+                break;
+        }
+
+        // Read the file requested
+        fs.readFile(path, (err, data) => {
+            if (err) {
+                if (err.errno === -2) {
+                    res.statusCode = 404;
+                    res.end("not found");
+                } else {
+                    try {
+                        console.error(err);
+                        res.statusCode = 500;
+                        res.end("failed to read file");
+                    } catch (err2) {
+                        console.error(err, err2);
                     }
-
-                    switch (req.method) {
-                        case "GET":
-                            res.setHeader("Content-Type", "application/json");
-                            res.end(JSON.stringify(sessions[args.id].board));
-                            break;
-                        case "PUT":
-                            if (req.headers["content-type"] !== "application/json") {
-                                res.statusCode = 400;
-                                res.end(noJson + "\nPlease use application/json");
-                                break;
-                            }
-                            let json;
-                            try {
-                                json = JSON.parse(data);
-                            } catch (e) {
-                                res.statusCode = 400;
-                                res.end(noJson + "\nYour JSON isn't JSON.");
-                                break;
-                            }
-
-                            if (json.dimensions === undefined ||
-                                json.pieces === undefined ||
-                                json.lines === undefined ||
-                                json.pieceCount === undefined) {
-                                res.statusCode = 400;
-                                res.end(noJson + "\nYour JSON is dog poo.");
-                                break;
-                            }
-
-                            sessions[args.id].board = json;
-
-                            res.end("Successfully applied new JSON.");
-
-                            sessions[args.id].sockets.forEach(s => s.send(`&B`));
-                            break;
-                        default:
-                            res.statusCode = 405;
-                            res.end();
-                            break;
-                    }
-                    break;
-                case "/api/new/":
-                    res.setHeader("Allow", "POST");
-                    switch (req.method) {
-                        case "POST":
-                            let invite = genInviteCode();
-                            sessions[invite] = {
-                                board: defaultBoard(),
-                                sockets: [],
-                                hasBeenLoaded: false
-                            };
-                            res.setHeader("Content-Type", "application/json");
-                            res.end(`{"invite": "${invite}"}`);
-                            break;
-                        default:
-                            res.statusCode = 405;
-                            res.end();
-                            break;
-                    }
-                    break;
-                default:
-                    res.setHeader("Content-Type", "text/plain");
-                    res.statusCode = 404
-                    res.end();
-                    break;
+                }
+            } else {
+                res.end(data);
             }
         });
+    } catch (e) {
+        console.log(e);
     }
-
-    // Start building the file request path
-    let path = "site" + req.url.split("?")[0];
-    if (path[path.length - 1] === "/") {
-        path += "index.html";
-    }
-
-    // If the path has funky spooky stuff in it, yeet it to the abyss
-    if (path.match(evilReqRe)) {
-        res.statusCode = 418;
-        res.setHeader("Content-Type", "text/plain");
-        res.end(insults[path.length % insults.length]);
-        return;
-    }
-
-    // If the file has an extension (it always should), use it
-    let extension = path.match(extRe);
-    if (extension) {
-        extension = extension[0];
-    } else {
-        extension = null;
-    }
-
-    // Set the correct content type based on the extension
-    switch (extension) {
-        case ".html":
-            res.setHeader("Content-Type", "text/html");
-            break;
-        case ".css":
-            res.setHeader("Content-Type", "text/css");
-            break;
-        case ".js":
-            res.setHeader("Content-Type", "text/javascript");
-            break;
-        case ".svg":
-            res.setHeader("Cache-Control", "private");
-            res.setHeader("Content-Type", "image/svg+xml");
-            break;
-        default:
-            res.setHeader("Content-Type", "text/plain");
-            break;
-    }
-
-    // Read the file requested
-    fs.readFile(path, (err, data) => {
-        if (err) {
-            if (err.errno === -2) {
-                res.statusCode = 404;
-                res.end("not found");
-            } else {
-                try {
-                    console.error(err);
-                    res.statusCode = 500;
-                    res.end("failed to read file");
-                } catch (err2) {
-                    console.error(err, err2);
-                }
-            }
-        } else {
-            res.end(data);
-        }
-    });
-} catch (e) {
-    console.log(e);
-}
 }).listen(config.port, (err) => {
     console.log(`Listening on 0.0.0.0:${config.port}`)
     const uid = parseInt(process.env.SUDO_UID);
@@ -347,7 +368,7 @@ wss.on('connection', function(socket) {
     });
 });
 function parsePos(posStr) {
-    var pos = posStr.split(",");
+    const pos = posStr.split(",");
     return [pos[0] - 0, pos[1] - 0];
 }
 
