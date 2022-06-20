@@ -9,7 +9,7 @@
     "ws": "^8.5.0"
   },
   "scripts": {
-    "start": "env HTTP=true node main.js",
+    "start": "sudo env HTTP=true node main.js",
     "start_s": "sudo node main.js"
   }
 }
