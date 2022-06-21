@@ -137,7 +137,7 @@ const noJson =
 ————————————————————————————————————`;
 
 const config = httpOrS === "https" ? JSON.parse(fs.readFileSync("config.json").toString()) : {};
-config.port = 8000; // Added by Tyler (LinuxRocks2000, weird_pusheen) so I don't have to deal with node's weird env stuff.//parseInt(process.env.PORT);
+config.port = parseInt(process.env.PORT);
 
 const auth = {};
 
