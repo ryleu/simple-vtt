@@ -98,6 +98,7 @@ const Files = Object.freeze(cacheFiles("site", [
         name: "icons",
         type: "dir",
         files: [
+            { name: "bucket.svg", type: "file" },
             { name: "cancel.svg", type: "file" },
             { name: "download.svg", type: "file" },
             { name: "gear.svg", type: "file" },
@@ -402,7 +403,8 @@ wss.on('connection', function(socket) {
                 case "F":
                     let squareId = data[0].split(",").join("_");
                     let fillColor = data[1];
-                    let pattern = ["cross", "diagonal"].includes(data[2]) ? data[2] : "solid";
+                    // TODO: add other fill patterns
+                    let pattern = [].includes(data[2]) ? data[2] : "solid";
                     if (fillColor !== "reset") {
                         sessions[socket.sessionId].board.fill[squareId] = {
                             color: fillColor,

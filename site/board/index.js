@@ -43,6 +43,7 @@ const States = Object.freeze({
     DELETE: Symbol("delete"), // delete mode
     ADD_PIECE_A: Symbol("addA"), // add piece, not complete
     ADD_PIECE_B: Symbol("addB"), // add piece, not completeDimensionsDimensions
+    FILL: Symbol("fill"), // fill a tile with a color
 });
 
 let state = States.NEUTRAL;
@@ -156,6 +157,23 @@ function newWebSocket() {
             stateData = null;
             document.getElementById("main-menu").className = "menu";
             document.getElementById("add-line-menu").className = "hidden-menu";
+        });
+
+
+        // // add fill button
+        document.getElementById("menu-fill").addEventListener("click", () => {
+            state = States.FILL;
+            stateData = null;
+            document.getElementById("main-menu").className = "hidden-menu";
+            document.getElementById("fill-menu").className = "menu";
+        });
+
+        // add line cancel
+        document.getElementById("fill-menu-close").addEventListener("click", () => {
+            state = States.NEUTRAL;
+            stateData = null;
+            document.getElementById("main-menu").className = "menu";
+            document.getElementById("fill-menu").className = "hidden-menu";
         });
 
 
@@ -304,17 +322,21 @@ function newWebSocket() {
                 window.location.reload(); // jk, that's too hard, just refresh
                 break;
             case "F":
-                let squareId = data[0].split(",").join("_");
+                let squarePos = parsePos(data[0]);
+                let squareId = `${squarePos.x}_${squarePos.y}`;
                 let color = data[1];
+                let square = document.getElementById(`square-${squarePos.y - 1}-${squarePos.x - 1}`);
                 if (color !== "reset") {
                     board.fill[squareId] = {
                         color: color,
                         pattern: data[2]
                     };
+
+                    square.style.backgroundColor = color.toString();
                 } else {
                     delete board.fill[squareId];
+                    square.style.backgroundColor = "var(--main-color)";
                 }
-                document.getElementById("")
                 break;
         }
     };
@@ -391,7 +413,7 @@ function renderBoard(x, y) {
         for (let j = 0; j < x; j++) {
             let square = document.createElement('div');
             square.className = 'square';
-            square.id = `square-${j}`;
+            square.id = `square-${i}-${j}`;
 
             // get the alternate fill color (if it exists)
             let altFill = board.fill[`${j+1}_${i+1}`];
@@ -477,6 +499,14 @@ function clickEvent(pos) {
             );
             stateData = null;
             state = States.NEUTRAL;
+            break;
+        case States.FILL:
+            let color = document.getElementById("fill-menu-color-input").value;
+            // TODO: add other fill colors
+            ws.send(`&F;${piecePos.x},${piecePos.y};${color};solid`);
+            break;
+        case States.DELETE:
+            ws.send(`&F;${piecePos.x},${piecePos.y};reset;solid`);
             break;
     }
 }

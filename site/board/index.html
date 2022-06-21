@@ -39,6 +39,9 @@ You should have received a copy of the GNU Affero General Public License along w
     <button class="menu-button" id="menu-delete" title="Delete Elements">
         <img class="menu-image" id="menu-delete-img" src="/icons/trash.svg"  alt="Delete Elements"/>
     </button>
+    <button class="menu-button" id="menu-fill" title="Fill Squares">
+        <img class="menu-image" id="menu-fill-img" src="/icons/bucket.svg"  alt="Fill Squares"/>
+    </button>
     <div class="flexbox">
         <h1 id="invite-code" style="position: relative; top: calc(50px - 1.25em); font-size: 3em; text-align: center;"></h1>
     </div>
@@ -81,7 +84,7 @@ You should have received a copy of the GNU Affero General Public License along w
     </div>
     <div class="menu-vertical" id="line-menu-color">
         <h2 class="menu-input-title">Color</h2>
-        <input class="menu-input" id="line-menu-color-input" type="color" value="#fff" />
+        <input class="menu-input" id="line-menu-color-input" type="color" value="#ffffff" />
     </div>
 </div>
 
@@ -90,6 +93,7 @@ You should have received a copy of the GNU Affero General Public License along w
     <button class="menu-button" id="delete-menu-close" title="Cancel">
         <img class="menu-image" id="delete-menu-close-img" src="/icons/cancel.svg" alt="Cancel" />
     </button>
+    <h1 style="position: relative; top: calc(50px - 1.25em); color: #ff0000; font-size: 3em;">Delete Mode</h1>
 </div>
 
 <!-- fill menu -->
@@ -97,7 +101,10 @@ You should have received a copy of the GNU Affero General Public License along w
     <button class="menu-button" id="fill-menu-close" title="Cancel">
         <img class="menu-image" id="fill-menu-close-img" src="/icons/cancel.svg" alt="Cancel" />
     </button>
-    <h1 style="position: relative; top: calc(50px - 1.25em); color: #ff0000; font-size: 3em;">Delete Mode</h1>
+    <div class="menu-vertical" id="fill-menu-color">
+        <h2 class="menu-input-title">Color</h2>
+        <input class="menu-input" id="fill-menu-color-input" type="color" value="#ffffff" />
+    </div>
 </div>
 
 <!-- config menu -->

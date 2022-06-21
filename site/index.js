@@ -19,7 +19,7 @@ inputBox.disabled = true;
 inputBox.value = "";
 
 
-function onJoinButton(event) {
+function onJoinButton() {
     if (inputBox.disabled) {
         inputBox.disabled = false;
     } else {
@@ -27,7 +27,7 @@ function onJoinButton(event) {
     }
 }
 
-function onNewButton(event) {
+function onNewButton() {
     fetch("/api/new", {method: "POST"}).then((value) => {
         value.json().then((json) => {
             document.location.href = `/board/?id=${json.invite}`;

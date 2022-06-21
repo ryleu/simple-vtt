@@ -48,6 +48,7 @@ S-VTT uses a straightforward spec for websocket communication:
 |  Delete a piece   |                  `&D;<id>`                   |                         `&D;<id>`                         | `id`: Unique identifier                                                                                                                         |
 |   Create a line   | `&L;<x1>,<y1>;<x2>,<y2>;<thickness>;<color>` | `&L;<x1>_<y1>__<x2>_<y2>;<x1>,<y1>;<x2>,<y2>;<thickness>` | `x1,y1`: Initial coordinate pair <br /> `x2,y2`: End coordinate pair <br /> `thickness`: Thickness of the line <br /> Hex color code            |
 |   Remove a line   |          `&R;<x1>_<y1>__<x2>_<y2>`           |                 `&R;<x1>_<y1>__<x2>_<y2>`                 | `x1,y1`: Initial integer coordinate pair <br /> `x2,y2`: End integer coordinate pair                                                            |
+|    Fill a tile    |         `&F;<x>,<y>;<color>;<style>`         |               `&F;<x>,<y>;<color>;<style>`                | `x,y`: Tile coordinate pair <br /> `color:` Hex color code <br /> `style:` Style of fill. Options: solid. Default: solid.                       |
 | Re-size the board |                 `&B;<x>,<y>`                 |                       `&B;<x>,<y>`                        | `x,y` Integer length / width pair                                                                                                               |
 |  Clear the board  |                     `&C`                     |                        `&B;30,15`                         | None                                                                                                                                            |
 |    Join a room    |                `&A;<invite>`                 |                       `&A;<invite>`                       | Invite code                                                                                                                                     |
@@ -69,7 +70,8 @@ Any other path is sourced from `site/`.
  - [x] Pieces
  - [x] Saving and loading
  - [x] Heroku deploy support
- - [ ] Tile fills
+ - [x] Tile fills
+ - [ ] Chromium / Webkit support
  - [ ] Game master
 
 ## Attribution
