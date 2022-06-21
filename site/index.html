@@ -25,19 +25,20 @@ You should have received a copy of the GNU Affero General Public License along w
 </head>
 
 <body id="body">
-<p style="text-align: center; font-size: 5em;">Simple VTT</p>
-<div class="main-area">
-    <div class="flexbox"></div>
-    <div class="button-holder">
-        <button id="menu-button-create" onclick="onNewButton()">New Board</button>
-        <div class="menu-vertical-split">
-            <button id="menu-button-join" onclick="onJoinButton()">Join</button>
-            <input class="menu-input" id="code-input" type="text" spellcheck="false" disabled />
+    <div id="base">
+        <p style="text-align: center; font-size: 5em;">Simple VTT</p>
+        <div class="main-area">
+            <div class="flexbox"></div>
+            <div class="button-holder">
+                <button id="menu-button-create" onclick="onNewButton()">New Board</button>
+                <div class="menu-vertical-split">
+                    <button id="menu-button-join" onclick="onJoinButton()">Join</button>
+                    <input class="menu-input" id="code-input" type="text" spellcheck="false" disabled />
+                </div>
+            </div>
+            <div class="flexbox"></div>
         </div>
     </div>
-    <div class="flexbox"></div>
-</div>
-
 <a href="https://ko-fi.com/ryleu" style="position: absolute; top: calc(100% - 2em); left: 45px">
     <svg fill="none" height="32" viewBox="0 0 391 391" width="32" xmlns="http://www.w3.org/2000/svg" style="width: 32px; height: 32px; position: absolute; top: calc(-1em / 2); left: -40px; background-color: #579FBF; border: 1px solid #579FBF; border-radius: 100%;">
         <path d="m52 102h296v199h-296z" fill="#fff"/>
@@ -56,3 +57,5 @@ You should have received a copy of the GNU Affero General Public License along w
 
 <script src="index.js"></script>
 </body>
+
+</html> <!-- This wasn't closed before! -->

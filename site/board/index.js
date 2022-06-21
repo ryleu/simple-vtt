@@ -57,10 +57,18 @@ let wsReady = false;
 let jsonReady = false;
 
 let websocketURL;
+var isURLHavePort = document.URL.split(":").length > 1; // If the url already has a port, then we don't want to add :80 or :443.
+
 if (document.URL.split(":")[0] === "https") {
-    websocketURL = `wss://${document.URL.split("//")[1].split("/")[0]}:443`
+    websocketURL = `wss://${document.URL.split("//")[1].split("/")[0]}`
+    if (!isURLHavePort){
+        websocketURL += ":443"
+    }
 } else {
-    websocketURL = `ws://${document.URL.split("//")[1].split("/")[0]}:80`
+    websocketURL = `ws://${document.URL.split("//")[1].split("/")[0]}`
+    if (!isURLHavePort){
+        websocketURL += ":80"
+    }
 }
 
 let ws = new WebSocket(websocketURL);
