@@ -432,7 +432,7 @@ function renderBoard(x, y) {
             button.style.width = getScale() + "px";
             button.style.height = getScale() + "px";
             if ((i + j) % 2 === 0) {
-                // i'm using an overlay here so that the color will change with any
+                // I'm using an overlay here so that the color will change with any
                 // background color
                 button.style.backgroundColor = 'var(--main-accent-difference)';
             }

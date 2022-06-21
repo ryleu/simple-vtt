@@ -71,7 +71,7 @@ Any other path is sourced from `site/`.
  - [x] Saving and loading
  - [x] Heroku deploy support
  - [x] Tile fills
- - [ ] Chromium / Webkit support
+ - [ ] Chromium / Webkit support (help required)
  - [ ] Game master
 
 ## Attribution
