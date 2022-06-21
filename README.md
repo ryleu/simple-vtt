@@ -80,9 +80,9 @@ Then, you have to remove TLS file references and change the websocket URL in `si
  - [x] Lines
  - [x] Pieces
  - [x] Saving and loading
+ - [x] Heroku deploy support
  - [ ] Tile fills
  - [ ] Game master
- - [ ] Heroku deploy support
 
 ## Attribution
 Icons are from the [Papirus Icon Theme](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme).
