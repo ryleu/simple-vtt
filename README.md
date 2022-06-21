@@ -7,7 +7,7 @@ launch it on Heroku:
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/ryleu/simple-vtt/tree/main)
 
 A free demo (that may be laggy and should not be used for actual games) can be
-found at <http://tabletop.ryleu.me>.
+found at <https://simple-vtt.herokuapp.com>.
 
 **Table of Contents**
  - [Configuration](#configuration)
