@@ -7,6 +7,10 @@ html, body {
     font: 1em Whitney, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
+a {
+    color: white;
+}
+
 a:visited {
     color: white;
 }
