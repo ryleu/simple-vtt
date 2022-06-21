@@ -13,7 +13,6 @@ found at <https://simple-vtt.herokuapp.com>.
  - [Configuration](#configuration)
  - [Running](#running)
  - [Protocol](#protocol)
- - [HTTP](#http)
  - [Roadmap](#roadmap)
  - [Attribution](#attribution)
 
@@ -61,17 +60,6 @@ There are also an HTTP API at `/api/`:
 |        `/api/new/`        | POST to generate a new blank board, responds with `{"invite": "<invite>"}` |
 
 Any other path is sourced from `site/`.
-
-## HTTP
-You could change this on line 5:
-```js
-const https = require("https");
-```
-to this, if you want to use HTTP instead:
-```js
-const https = require("http");
-```
-Then, you have to remove TLS file references and change the websocket URL in `site/board/index.js` from `wss://` to `ws://`.
 
 ## Roadmap
 
