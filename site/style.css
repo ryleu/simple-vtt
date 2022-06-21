@@ -13,10 +13,13 @@ You should have received a copy of the GNU Affero General Public License along w
 <https://www.gnu.org/licenses/>.
 */
 
+/*
+Edited (fixed, cleaned, UI changes) by Tyler (LinuxRocks2000, weird_pusheen).
+*/
+
 html, body {
     color-scheme: dark;
     background-color: #181a1b;
-    scrollbar-color: #454a4d #202324;
     color: #ccc;
     overflow: hidden;
     font: 1em Whitney, "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -43,6 +46,16 @@ a:visited {
     flex: 1;
     height: 500px;
     width: 300px;
+}
+
+#base{
+    width: 100vw;
+    max-height: 100vh;
+    scrollbar-color: #454a4d #202324;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    overflow-y: auto;
 }
 
 #menu-button-create {
