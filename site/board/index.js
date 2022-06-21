@@ -58,267 +58,278 @@ let jsonReady = false;
 
 let websocketURL;
 if (document.URL.split(":")[0] === "https") {
-    websocketURL = `wss://${document.URL.split("//")[1].split("/")[0]}:443`
+    websocketURL = `wss://${document.URL.split("//")[1].split("/")[0]}:443`;
 } else {
-    websocketURL = `ws://${document.URL.split("//")[1].split("/")[0]}:80`
+    websocketURL = `ws://${document.URL.split("//")[1].split("/")[0]}:80`;
 }
 
-let ws = new WebSocket(websocketURL);
+let ws;
 
-ws.onopen = () => {
-    ws.send(`&A;${args.id}`);
+function newWebSocket() {
+    let sock = new WebSocket(websocketURL);
 
-    document.getElementById("main-menu").className = "menu";
-    document.getElementById("body").style.cursor = "default";
-    document.getElementById("board-holder").style.display = "inherit";
-    document.getElementById("invite-code").innerHTML = `Invite: ${args.id}`;
-    document.getElementById("config-menu-download").href = `/api/board/?id=${args.id}`;
-    let downloadButton = document.getElementById("config-menu-download");
-    downloadButton.addEventListener("click", () => {
-        if (ws.readyState === ws.OPEN) {
-            const link = document.createElement("a");
-            link.download = "board.json";
-            link.href = `/api/board/?id=${args.id}`;
-            link.click();
-        } else {
-            let boardString = JSON.stringify(board);
-            navigator.clipboard.writeText(boardString).then(() => {
-                const boardElement = document.getElementById("board");
-                boardElement.innerHTML = "";
+    sock.onopen = () => {
+        sock.send(`&A;${args.id}`);
 
-                const label = document.createElement("h1");
-                label.className = "warning";
-                label.textContent = "Board copied to clipboard because the site was unreachable.";
-
-                boardElement.appendChild(label);
-
-                const labelText = document.createElement("p");
-                labelText.textContent = boardString;
-
-                boardElement.appendChild(labelText);
-            });
-        }
-    });
-
-    wsReady = true;
-
-    // <mapping-buttons> //
-
-    // // add piece button
-    document.getElementById("menu-create-piece").addEventListener("click", () => {
-        state = States.ADD_PIECE_A;
-        stateData = null;
-        document.getElementById("main-menu").className = "hidden-menu";
-        document.getElementById("add-piece-menu").className = "menu";
-    });
-
-    // add piece cancel
-    document.getElementById("piece-menu-close").addEventListener("click", () => {
-        state = States.NEUTRAL;
-        stateData = null;
         document.getElementById("main-menu").className = "menu";
-        document.getElementById("add-piece-menu").className = "hidden-menu";
-
-        document.getElementById("piece-menu-name-input").value = "";
-        document.getElementById("piece-menu-icon-input").value = "";
-        let img = document.getElementById("piece-menu-preview");
-        img.title = "";
-        img.src = "";
-    });
-
-    // add piece preview
-    document.getElementById("piece-menu-load").addEventListener("click", () => {
-        state = States.ADD_PIECE_B;
-        stateData = {
-            name: document.getElementById("piece-menu-name-input").value,
-            icon: document.getElementById("piece-menu-icon-input").value
-        }
-        let img = document.getElementById("piece-menu-preview");
-        img.title = stateData.name;
-        img.src = stateData.icon;
-    });
-
-
-    // // add line button
-    document.getElementById("menu-create-line").addEventListener("click", () => {
-        state = States.LINE_DRAW_A;
-        stateData = null;
-        document.getElementById("main-menu").className = "hidden-menu";
-        document.getElementById("add-line-menu").className = "menu";
-    });
-
-    // add line cancel
-    document.getElementById("line-menu-close").addEventListener("click", () => {
-        state = States.NEUTRAL;
-        stateData = null;
-        document.getElementById("main-menu").className = "menu";
-        document.getElementById("add-line-menu").className = "hidden-menu";
-    });
-
-
-    // // delete button
-    document.getElementById("menu-delete").addEventListener("click", () => {
-        state = States.DELETE;
-        stateData = null;
-        document.getElementById("main-menu").className = "hidden-menu";
-        document.getElementById("delete-menu").className = "menu";
-    });
-
-    // delete cancel
-    document.getElementById("delete-menu-close").addEventListener("click", () => {
-        state = States.NEUTRAL;
-        stateData = null;
-        document.getElementById("main-menu").className = "menu";
-        document.getElementById("delete-menu").className = "hidden-menu";
-    });
-
-
-    // // config button
-    document.getElementById("menu-config").addEventListener("click", () => {
-        document.getElementById("config-menu-scale-input").value = getScale();
-        document.getElementById("config-menu-dims-input-x").value = board.dimensions[0];
-        document.getElementById("config-menu-dims-input-y").value = board.dimensions[1];
-
-        document.getElementById("main-menu").className = "hidden-menu";
-        document.getElementById("config-menu").className = "menu";
-    });
-
-    // config cancel
-    document.getElementById("config-menu-close").addEventListener("click", () => {
-        document.getElementById("main-menu").className = "menu";
-        document.getElementById("config-menu").className = "hidden-menu";
-    });
-
-    // config scale
-    document.getElementById("config-menu-rescale").addEventListener("click", () => {
-        let scaleInput = document.getElementById("config-menu-scale-input").value;
-
-        if (scaleInput < 50) {
-            document.getElementById("config-menu-scale-input").value = 50;
-        } else if (scaleInput > 300) {
-            document.getElementById("config-menu-scale-input").value = 300;
-        } else {
-            localStorage.setItem("scale", document.getElementById("config-menu-scale-input").value);
-            window.location.reload();
-        }
-    });
-
-    // config dimensions
-    document.getElementById("config-menu-dims-apply").addEventListener("click", () => {
-        let dimsInputX = Math.round(document.getElementById("config-menu-dims-input-x").value);
-        let dimsInputY = Math.round(document.getElementById("config-menu-dims-input-y").value);
-
-        if (dimsInputX >= 1 && dimsInputX <= 100 && dimsInputY >= 1 && dimsInputY <= 100) {
-            ws.send(`&B;${dimsInputX},${dimsInputY}`);
-            return;
-        }
-
-        if (dimsInputX < 1) {
-            document.getElementById("config-menu-dims-input-x").value = 1;
-        } else if (dimsInputX > 100) {
-            document.getElementById("config-menu-dims-input-x").value = 300;
-        }
-
-        if (dimsInputY < 1) {
-            document.getElementById("config-menu-dims-input-y").value = 1;
-        } else if (dimsInputY > 100) {
-            document.getElementById("config-menu-dims-input-y").value = 300;
-        }
-    });
-
-    // config reset
-    document.getElementById("config-menu-reset").addEventListener("click", () => {
-        ws.send("&C");
-    });
-
-    // config upload
-    document.getElementById("config-menu-upload-apply").addEventListener("click", () => {
-        let inputElement = document.getElementById("config-menu-upload-input");
-        let file = inputElement.files[0];
-        if (file) {
-            file.text().then(value => {
-                inputElement.value = "";
-                fetch(`/api/board/?id=${args.id}`, {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: value
-                });
-            });
-        }
-    });
-
-    // config upload selected file
-    document.getElementById("config-menu-upload-input").addEventListener("input", () => {
-        let labelElement = document.getElementById("config-menu-upload-selected");
-        let file = document.getElementById("config-menu-upload-input").files[0];
-        if (file) {
-            labelElement.textContent = file.name;
-        } else {
-            labelElement.textContent = "No file selected...";
-        }
-    });
-
-    // </mapping-buttons> //
-};
-
-ws.onmessage = (msg) => {
-    let rawData = msg.data.split(";");
-    let action = rawData[0].substring(1);
-    let data = rawData.slice(1, rawData.length);
-
-    switch (action) {
-        case "S": // Add piece
-            board.pieces[data[0]] = new Piece(
-                data[0], // id
-                atob(data[1].toString()), // base64 name
-                parsePos(data[2]), // position
-                atob(data[3].toString()) // base64 icon url
-            );
-            break;
-        case "M": // Move piece
-            board.pieces[data[0]].pos = parsePos(data[1]);
-            break;
-        case "D": // Delete piece
-            board.pieces[data[0]].remove();
-            delete board.pieces[data[0]];
-            break;
-        case "L": // Add line
-            board.lines[data[0]] = new Line(
-                data[0], // id
-                parsePos(data[1]), // first position
-                parsePos(data[2]), // second position
-                data[3] - 0, // thickness
-                data[4] // color
-            );
-            break;
-        case "R": // Delete line
-            board.lines[data[0]].remove();
-            delete board.lines[data[0]];
-            break;
-        case "B": // Resize board
-            window.location.reload(); // jk, that's too hard, just refresh
-            break;
-        case "F":
-            let squareId = data[0].split(",").join("_");
-            let color = data[1];
-            if (color !== "reset") {
-                board.fill[squareId] = {
-                    color: color,
-                    pattern: data[2]
-                };
+        document.getElementById("body").style.cursor = "default";
+        document.getElementById("board-holder").style.display = "inherit";
+        document.getElementById("invite-code").innerHTML = `Invite: ${args.id}`;
+        document.getElementById("config-menu-download").href = `/api/board/?id=${args.id}`;
+        let downloadButton = document.getElementById("config-menu-download");
+        downloadButton.addEventListener("click", () => {
+            if (sock.readyState === sock.OPEN) {
+                const link = document.createElement("a");
+                link.download = "board.json";
+                link.href = `/api/board/?id=${args.id}`;
+                link.click();
             } else {
-                delete board.fill[squareId];
-            }
-            document.getElementById("")
-            break;
-    }
-};
+                let boardString = JSON.stringify(board);
+                navigator.clipboard.writeText(boardString).then(() => {
+                    const boardElement = document.getElementById("board");
+                    boardElement.innerHTML = "";
 
-ws.onclose = () => {
-    document.getElementById("invite-code").innerHTML = "DISCONNECTED";
+                    const label = document.createElement("h1");
+                    label.className = "warning";
+                    label.textContent = "Board copied to clipboard because the site was unreachable.";
+
+                    boardElement.appendChild(label);
+
+                    const labelText = document.createElement("p");
+                    labelText.textContent = boardString;
+
+                    boardElement.appendChild(labelText);
+                });
+            }
+        });
+
+        wsReady = true;
+
+        // <mapping-buttons> //
+
+        // // add piece button
+        document.getElementById("menu-create-piece").addEventListener("click", () => {
+            state = States.ADD_PIECE_A;
+            stateData = null;
+            document.getElementById("main-menu").className = "hidden-menu";
+            document.getElementById("add-piece-menu").className = "menu";
+        });
+
+        // add piece cancel
+        document.getElementById("piece-menu-close").addEventListener("click", () => {
+            state = States.NEUTRAL;
+            stateData = null;
+            document.getElementById("main-menu").className = "menu";
+            document.getElementById("add-piece-menu").className = "hidden-menu";
+
+            document.getElementById("piece-menu-name-input").value = "";
+            document.getElementById("piece-menu-icon-input").value = "";
+            let img = document.getElementById("piece-menu-preview");
+            img.title = "";
+            img.src = "";
+        });
+
+        // add piece preview
+        document.getElementById("piece-menu-load").addEventListener("click", () => {
+            state = States.ADD_PIECE_B;
+            stateData = {
+                name: document.getElementById("piece-menu-name-input").value,
+                icon: document.getElementById("piece-menu-icon-input").value
+            }
+            let img = document.getElementById("piece-menu-preview");
+            img.title = stateData.name;
+            img.src = stateData.icon;
+        });
+
+
+        // // add line button
+        document.getElementById("menu-create-line").addEventListener("click", () => {
+            state = States.LINE_DRAW_A;
+            stateData = null;
+            document.getElementById("main-menu").className = "hidden-menu";
+            document.getElementById("add-line-menu").className = "menu";
+        });
+
+        // add line cancel
+        document.getElementById("line-menu-close").addEventListener("click", () => {
+            state = States.NEUTRAL;
+            stateData = null;
+            document.getElementById("main-menu").className = "menu";
+            document.getElementById("add-line-menu").className = "hidden-menu";
+        });
+
+
+        // // delete button
+        document.getElementById("menu-delete").addEventListener("click", () => {
+            state = States.DELETE;
+            stateData = null;
+            document.getElementById("main-menu").className = "hidden-menu";
+            document.getElementById("delete-menu").className = "menu";
+        });
+
+        // delete cancel
+        document.getElementById("delete-menu-close").addEventListener("click", () => {
+            state = States.NEUTRAL;
+            stateData = null;
+            document.getElementById("main-menu").className = "menu";
+            document.getElementById("delete-menu").className = "hidden-menu";
+        });
+
+
+        // // config button
+        document.getElementById("menu-config").addEventListener("click", () => {
+            document.getElementById("config-menu-scale-input").value = getScale();
+            document.getElementById("config-menu-dims-input-x").value = board.dimensions[0];
+            document.getElementById("config-menu-dims-input-y").value = board.dimensions[1];
+
+            document.getElementById("main-menu").className = "hidden-menu";
+            document.getElementById("config-menu").className = "menu";
+        });
+
+        // config cancel
+        document.getElementById("config-menu-close").addEventListener("click", () => {
+            document.getElementById("main-menu").className = "menu";
+            document.getElementById("config-menu").className = "hidden-menu";
+        });
+
+        // config scale
+        document.getElementById("config-menu-rescale").addEventListener("click", () => {
+            let scaleInput = document.getElementById("config-menu-scale-input").value;
+
+            if (scaleInput < 50) {
+                document.getElementById("config-menu-scale-input").value = 50;
+            } else if (scaleInput > 300) {
+                document.getElementById("config-menu-scale-input").value = 300;
+            } else {
+                localStorage.setItem("scale", document.getElementById("config-menu-scale-input").value);
+                window.location.reload();
+            }
+        });
+
+        // config dimensions
+        document.getElementById("config-menu-dims-apply").addEventListener("click", () => {
+            let dimsInputX = Math.round(document.getElementById("config-menu-dims-input-x").value);
+            let dimsInputY = Math.round(document.getElementById("config-menu-dims-input-y").value);
+
+            if (dimsInputX >= 1 && dimsInputX <= 100 && dimsInputY >= 1 && dimsInputY <= 100) {
+                sock.send(`&B;${dimsInputX},${dimsInputY}`);
+                return;
+            }
+
+            if (dimsInputX < 1) {
+                document.getElementById("config-menu-dims-input-x").value = 1;
+            } else if (dimsInputX > 100) {
+                document.getElementById("config-menu-dims-input-x").value = 300;
+            }
+
+            if (dimsInputY < 1) {
+                document.getElementById("config-menu-dims-input-y").value = 1;
+            } else if (dimsInputY > 100) {
+                document.getElementById("config-menu-dims-input-y").value = 300;
+            }
+        });
+
+        // config reset
+        document.getElementById("config-menu-reset").addEventListener("click", () => {
+            sock.send("&C");
+        });
+
+        // config upload
+        document.getElementById("config-menu-upload-apply").addEventListener("click", () => {
+            let inputElement = document.getElementById("config-menu-upload-input");
+            let file = inputElement.files[0];
+            if (file) {
+                file.text().then(value => {
+                    inputElement.value = "";
+                    fetch(`/api/board/?id=${args.id}`, {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: value
+                    });
+                });
+            }
+        });
+
+        // config upload selected file
+        document.getElementById("config-menu-upload-input").addEventListener("input", () => {
+            let labelElement = document.getElementById("config-menu-upload-selected");
+            let file = document.getElementById("config-menu-upload-input").files[0];
+            if (file) {
+                labelElement.textContent = file.name;
+            } else {
+                labelElement.textContent = "No file selected...";
+            }
+        });
+
+        // </mapping-buttons> //
+    };
+
+    sock.onmessage = (msg) => {
+        let rawData = msg.data.split(";");
+        let action = rawData[0].substring(1);
+        let data = rawData.slice(1, rawData.length);
+
+        switch (action) {
+            case "S": // Add piece
+                board.pieces[data[0]] = new Piece(
+                    data[0], // id
+                    atob(data[1].toString()), // base64 name
+                    parsePos(data[2]), // position
+                    atob(data[3].toString()) // base64 icon url
+                );
+                break;
+            case "M": // Move piece
+                board.pieces[data[0]].pos = parsePos(data[1]);
+                break;
+            case "D": // Delete piece
+                board.pieces[data[0]].remove();
+                delete board.pieces[data[0]];
+                break;
+            case "L": // Add line
+                board.lines[data[0]] = new Line(
+                    data[0], // id
+                    parsePos(data[1]), // first position
+                    parsePos(data[2]), // second position
+                    data[3] - 0, // thickness
+                    data[4] // color
+                );
+                break;
+            case "R": // Delete line
+                board.lines[data[0]].remove();
+                delete board.lines[data[0]];
+                break;
+            case "B": // Resize board
+                window.location.reload(); // jk, that's too hard, just refresh
+                break;
+            case "F":
+                let squareId = data[0].split(",").join("_");
+                let color = data[1];
+                if (color !== "reset") {
+                    board.fill[squareId] = {
+                        color: color,
+                        pattern: data[2]
+                    };
+                } else {
+                    delete board.fill[squareId];
+                }
+                document.getElementById("")
+                break;
+        }
+    };
+
+    sock.onclose = () => {
+        document.getElementById("invite-code").innerHTML = "DISCONNECTED";
+        sock.onclose = () => {};
+        sock.close();
+        ws = newWebSocket();
+    }
+
+    return sock;
 }
+
+ws = newWebSocket();
 
 fetch("/api/board/?id=" + args.id).then(response => response.json()).then((json) => {
     board.dimensions = json.dimensions;
