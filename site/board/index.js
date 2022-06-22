@@ -524,6 +524,11 @@ function getScale() {
     return localStorage.getItem("scale");
 }
 
+// get whether chrome mode is enabled
+function getChromeMode() {
+    return localStorage.getItem("chromeMode") === "true";
+}
+
 // parse positions from websocket data
 function parsePos(rawPos) {
     let split = rawPos.split(",");
@@ -580,9 +585,11 @@ class Line {
         this.element = document.createElement("button");
 
         this.element.addEventListener("click", event => {
-            let relPos = polarToCartesian(event.layerX, this.angle);
+            // offsetX is needed here because it works the same way in Firefox, Chromium, and WebKit
+            const relPos = polarToCartesian(event.offsetX, this.angle);
+
             // Remember: the click is offset by the subscale
-            let pos = new Pos(
+            const pos = new Pos(
                 this.pos.x + subScale * (Math.round(relPos.x / (getScale() * subScale)) - 1),
                 this.pos.y + subScale * (Math.round(relPos.y / (getScale() * subScale)) - 1)
             );

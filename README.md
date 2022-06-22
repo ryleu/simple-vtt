@@ -71,8 +71,10 @@ Any other path is sourced from `site/`.
  - [x] Saving and loading
  - [x] Heroku deploy support
  - [x] Tile fills
- - [ ] Chromium / Webkit support (help required)
- - [ ] Game master
+ - [x] Chromium / Webkit support
+ - [ ] Default pieces
+ - [ ] Custom saved pieces
+ - [ ] ~~Game master~~ This will never be implemented in v1.x.x.
 
 ## Attribution
 Icons are from the [Papirus Icon Theme](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme).
