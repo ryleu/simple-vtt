@@ -13,24 +13,30 @@ You should have received a copy of the GNU Affero General Public License along w
 <https://www.gnu.org/licenses/>.
 */
 
-document.getElementById("js-message").style.display = "none";
+document.getElementById("js-message")!!.style.display = "none"
 
-let args = {};
-document.URL.split("?")[1] ? document.URL.split("?")[1].split("&").forEach((arg) => {
-    let splitArg = arg.split("=");
-    args[splitArg[0]] = splitArg[1];
-}) : null;
-
-if (localStorage.getItem("scale") === null) {
-    localStorage.setItem("scale", "100");
+let boardId = "";
+if (document.URL.split("?")[1]) {
+    document.URL.split("?")[1].split("&").forEach((arg) => {
+        let splitArg = arg.split("=");
+        if (splitArg[0] === "id") {
+            boardId = splitArg[1];
+        }
+    });
 }
 
-let board = {
-    dimensions: [0, 0],
+
+let board: {
+    dimensions: Pos,
+    pieces: { [index: string]: Piece },
+    lines: { [index: string]: Line },
+    fill: { [index: string]: SquareFill }
+} = {
+    dimensions: {x: 0, y: 0},
     pieces: {},
     lines: {},
     fill: {}
-}
+};
 
 
 // <states>
@@ -47,47 +53,50 @@ const States = Object.freeze({
 });
 
 let state = States.NEUTRAL;
-let stateData = null;
+let stateData: AddPieceStateData | Piece | Line | LineDrawStateData | null = null;
 
 // </states>
 
 
-let elementGrid = [];
+let elementGrid: Array<HTMLElement> = [];
 
 let wsReady = false;
 let jsonReady = false;
 
-let websocketURL;
-if (document.URL.split(":")[0] === "https") {
-    websocketURL = `wss://${document.URL.split("//")[1].split("/")[0]}:443`;
+let websocketURL: string;
+let splitURL = document.URL.split(":");
+let overridePort = parseInt(splitURL[2]) !== NaN;
+
+if (splitURL[0] === "https") {
+    websocketURL = `wss://${document.URL.split("//")[1].split("/")[0]}${overridePort ? "" : ":443"}`;
 } else {
-    websocketURL = `ws://${document.URL.split("//")[1].split("/")[0]}:80`;
+    websocketURL = `ws://${document.URL.split("//")[1].split("/")[0]}${overridePort ? "" : ":80"}`;
 }
 
-let ws;
+let ws: WebSocket;
 
 function newWebSocket() {
     let sock = new WebSocket(websocketURL);
 
     sock.onopen = () => {
-        sock.send(`&A;${args.id}`);
+        sock.send(`&A;${boardId}`);
 
-        document.getElementById("main-menu").className = "menu";
-        document.getElementById("body").style.cursor = "default";
-        document.getElementById("board-holder").style.display = "inherit";
-        document.getElementById("invite-code").innerHTML = `Invite: ${args.id}`;
-        document.getElementById("config-menu-download").href = `/api/board/?id=${args.id}`;
-        let downloadButton = document.getElementById("config-menu-download");
+        document.getElementById("main-menu")!!.className = "menu";
+        document.getElementById("body")!!.style.cursor = "default";
+        document.getElementById("board-holder")!!.style.display = "inherit";
+        document.getElementById("invite-code")!!.innerHTML = `Invite: ${boardId}`;
+        (document.getElementById("config-menu-download")!! as HTMLAnchorElement).href = `/api/board/?id=${boardId}`;
+        let downloadButton = document.getElementById("config-menu-download")!!;
         downloadButton.addEventListener("click", () => {
             if (sock.readyState === sock.OPEN) {
                 const link = document.createElement("a");
                 link.download = "board.json";
-                link.href = `/api/board/?id=${args.id}`;
+                link.href = `/api/board/?id=${boardId}`;
                 link.click();
             } else {
                 let boardString = JSON.stringify(board);
                 navigator.clipboard.writeText(boardString).then(() => {
-                    const boardElement = document.getElementById("board");
+                    const boardElement = document.getElementById("board")!!;
                     boardElement.innerHTML = "";
 
                     const label = document.createElement("h1");
@@ -109,125 +118,130 @@ function newWebSocket() {
         // <mapping-buttons> //
 
         // // add piece button
-        document.getElementById("menu-create-piece").addEventListener("click", () => {
+        document.getElementById("menu-create-piece")!!.addEventListener("click", () => {
             state = States.ADD_PIECE_A;
             stateData = null;
-            document.getElementById("main-menu").className = "hidden-menu";
-            document.getElementById("add-piece-menu").className = "menu";
+            document.getElementById("main-menu")!!.className = "hidden-menu";
+            document.getElementById("add-piece-menu")!!.className = "menu";
         });
 
         // add piece cancel
-        document.getElementById("piece-menu-close").addEventListener("click", () => {
+        document.getElementById("piece-menu-close")!!.addEventListener("click", () => {
             state = States.NEUTRAL;
             stateData = null;
-            document.getElementById("main-menu").className = "menu";
-            document.getElementById("add-piece-menu").className = "hidden-menu";
+            document.getElementById("main-menu")!!.className = "menu";
+            document.getElementById("add-piece-menu")!!.className = "hidden-menu";
 
-            document.getElementById("piece-menu-name-input").value = "";
-            document.getElementById("piece-menu-icon-input").value = "";
-            let img = document.getElementById("piece-menu-preview");
+            (document.getElementById("piece-menu-name-input") as HTMLInputElement)!!.value = "";
+            (document.getElementById("piece-menu-icon-input") as HTMLInputElement)!!.value = "";
+            let img = document.getElementById("piece-menu-preview")!! as HTMLImageElement;
             img.title = "";
             img.src = "";
         });
 
         // add piece preview
-        document.getElementById("piece-menu-load").addEventListener("click", () => {
+        document.getElementById("piece-menu-load")!!.addEventListener("click", () => {
             state = States.ADD_PIECE_B;
-            stateData = {
-                name: document.getElementById("piece-menu-name-input").value,
-                icon: document.getElementById("piece-menu-icon-input").value
-            }
-            let img = document.getElementById("piece-menu-preview");
+            stateData = new AddPieceStateData(
+                (document.getElementById("piece-menu-name-input")!! as HTMLInputElement).value,
+                (document.getElementById("piece-menu-icon-input")!! as HTMLInputElement).value
+            )
+
+            let img = document.getElementById("piece-menu-preview")!! as HTMLImageElement;
             img.title = stateData.name;
             img.src = stateData.icon;
         });
 
 
         // // add line button
-        document.getElementById("menu-create-line").addEventListener("click", () => {
+        document.getElementById("menu-create-line")!!.addEventListener("click", () => {
             state = States.LINE_DRAW_A;
             stateData = null;
-            document.getElementById("main-menu").className = "hidden-menu";
-            document.getElementById("add-line-menu").className = "menu";
+            document.getElementById("main-menu")!!.className = "hidden-menu";
+            document.getElementById("add-line-menu")!!.className = "menu";
         });
 
         // add line cancel
-        document.getElementById("line-menu-close").addEventListener("click", () => {
+        document.getElementById("line-menu-close")!!.addEventListener("click", () => {
             state = States.NEUTRAL;
             stateData = null;
-            document.getElementById("main-menu").className = "menu";
-            document.getElementById("add-line-menu").className = "hidden-menu";
+            document.getElementById("main-menu")!!.className = "menu";
+            document.getElementById("add-line-menu")!!.className = "hidden-menu";
         });
 
 
         // // add fill button
-        document.getElementById("menu-fill").addEventListener("click", () => {
+        document.getElementById("menu-fill")!!.addEventListener("click", () => {
             state = States.FILL;
             stateData = null;
-            document.getElementById("main-menu").className = "hidden-menu";
-            document.getElementById("fill-menu").className = "menu";
+            document.getElementById("main-menu")!!.className = "hidden-menu";
+            document.getElementById("fill-menu")!!.className = "menu";
         });
 
         // add line cancel
-        document.getElementById("fill-menu-close").addEventListener("click", () => {
+        document.getElementById("fill-menu-close")!!.addEventListener("click", () => {
             state = States.NEUTRAL;
             stateData = null;
-            document.getElementById("main-menu").className = "menu";
-            document.getElementById("fill-menu").className = "hidden-menu";
+            document.getElementById("main-menu")!!.className = "menu";
+            document.getElementById("fill-menu")!!.className = "hidden-menu";
         });
 
 
         // // delete button
-        document.getElementById("menu-delete").addEventListener("click", () => {
+        document.getElementById("menu-delete")!!.addEventListener("click", () => {
             state = States.DELETE;
             stateData = null;
-            document.getElementById("main-menu").className = "hidden-menu";
-            document.getElementById("delete-menu").className = "menu";
+            document.getElementById("main-menu")!!.className = "hidden-menu";
+            document.getElementById("delete-menu")!!.className = "menu";
         });
 
         // delete cancel
-        document.getElementById("delete-menu-close").addEventListener("click", () => {
+        document.getElementById("delete-menu-close")!!.addEventListener("click", () => {
             state = States.NEUTRAL;
             stateData = null;
-            document.getElementById("main-menu").className = "menu";
-            document.getElementById("delete-menu").className = "hidden-menu";
+            document.getElementById("main-menu")!!.className = "menu";
+            document.getElementById("delete-menu")!!.className = "hidden-menu";
         });
 
 
         // // config button
-        document.getElementById("menu-config").addEventListener("click", () => {
-            document.getElementById("config-menu-scale-input").value = getScale();
-            document.getElementById("config-menu-dims-input-x").value = board.dimensions[0];
-            document.getElementById("config-menu-dims-input-y").value = board.dimensions[1];
+        document.getElementById("menu-config")!!.addEventListener("click", () => {
+            (document.getElementById("config-menu-scale-input")!! as HTMLInputElement).value = getScale().toString();
+            (document.getElementById("config-menu-dims-input-x")!! as HTMLInputElement).value = board.dimensions.x.toString();
+            (document.getElementById("config-menu-dims-input-y")!! as HTMLInputElement).value = board.dimensions.y.toString();
 
-            document.getElementById("main-menu").className = "hidden-menu";
-            document.getElementById("config-menu").className = "menu";
+            document.getElementById("main-menu")!!.className = "hidden-menu";
+            document.getElementById("config-menu")!!.className = "menu";
         });
 
         // config cancel
-        document.getElementById("config-menu-close").addEventListener("click", () => {
-            document.getElementById("main-menu").className = "menu";
-            document.getElementById("config-menu").className = "hidden-menu";
+        document.getElementById("config-menu-close")!!.addEventListener("click", () => {
+            document.getElementById("main-menu")!!.className = "menu";
+            document.getElementById("config-menu")!!.className = "hidden-menu";
         });
 
         // config scale
-        document.getElementById("config-menu-rescale").addEventListener("click", () => {
-            let scaleInput = document.getElementById("config-menu-scale-input").value;
+        document.getElementById("config-menu-rescale")!!.addEventListener("click", () => {
+            let inputElement = (document.getElementById("config-menu-scale-input")!! as HTMLInputElement);
+            let scaleInput = parseInt(inputElement.value);
 
             if (scaleInput < 50) {
-                document.getElementById("config-menu-scale-input").value = 50;
+                inputElement.value = "50";
             } else if (scaleInput > 300) {
-                document.getElementById("config-menu-scale-input").value = 300;
+                inputElement.value = "300";
             } else {
-                localStorage.setItem("scale", document.getElementById("config-menu-scale-input").value);
+                localStorage.setItem("scale", Math.round(scaleInput).toString());
                 window.location.reload();
             }
         });
 
         // config dimensions
-        document.getElementById("config-menu-dims-apply").addEventListener("click", () => {
-            let dimsInputX = Math.round(document.getElementById("config-menu-dims-input-x").value);
-            let dimsInputY = Math.round(document.getElementById("config-menu-dims-input-y").value);
+        document.getElementById("config-menu-dims-apply")!!.addEventListener("click", () => {
+            let xInputElement = (document.getElementById("config-menu-dims-input-x")!! as HTMLInputElement)
+            let yInputElement = (document.getElementById("config-menu-dims-input-y")!! as HTMLInputElement)
+
+            let dimsInputX = Math.round(parseFloat(xInputElement.value));
+            let dimsInputY = Math.round(parseFloat(yInputElement.value));
 
             if (dimsInputX >= 1 && dimsInputX <= 100 && dimsInputY >= 1 && dimsInputY <= 100) {
                 sock.send(`&B;${dimsInputX},${dimsInputY}`);
@@ -235,31 +249,31 @@ function newWebSocket() {
             }
 
             if (dimsInputX < 1) {
-                document.getElementById("config-menu-dims-input-x").value = 1;
+                xInputElement.value = "1";
             } else if (dimsInputX > 100) {
-                document.getElementById("config-menu-dims-input-x").value = 300;
+                xInputElement.value = "300";
             }
 
             if (dimsInputY < 1) {
-                document.getElementById("config-menu-dims-input-y").value = 1;
+                yInputElement.value = "1";
             } else if (dimsInputY > 100) {
-                document.getElementById("config-menu-dims-input-y").value = 300;
+                yInputElement.value = "300";
             }
         });
 
         // config reset
-        document.getElementById("config-menu-reset").addEventListener("click", () => {
+        document.getElementById("config-menu-reset")!!.addEventListener("click", () => {
             sock.send("&C");
         });
 
         // config upload
-        document.getElementById("config-menu-upload-apply").addEventListener("click", () => {
-            let inputElement = document.getElementById("config-menu-upload-input");
-            let file = inputElement.files[0];
+        document.getElementById("config-menu-upload-apply")!!.addEventListener("click", () => {
+            let inputElement = document.getElementById("config-menu-upload-input")!! as HTMLInputElement;
+            let file = inputElement.files?.item(0);
             if (file) {
                 file.text().then(value => {
                     inputElement.value = "";
-                    fetch(`/api/board/?id=${args.id}`, {
+                    fetch(`/api/board/?id=${boardId}`, {
                         method: "PUT",
                         headers: {
                             "Content-Type": "application/json"
@@ -271,9 +285,9 @@ function newWebSocket() {
         });
 
         // config upload selected file
-        document.getElementById("config-menu-upload-input").addEventListener("input", () => {
-            let labelElement = document.getElementById("config-menu-upload-selected");
-            let file = document.getElementById("config-menu-upload-input").files[0];
+        document.getElementById("config-menu-upload-input")!!.addEventListener("input", () => {
+            let labelElement = document.getElementById("config-menu-upload-selected")!!;
+            let file = (document.getElementById("config-menu-upload-input")!! as HTMLInputElement).files?.item(0);
             if (file) {
                 labelElement.textContent = file.name;
             } else {
@@ -326,6 +340,10 @@ function newWebSocket() {
                 let squareId = `${squarePos.x}_${squarePos.y}`;
                 let color = data[1];
                 let square = document.getElementById(`square-${squarePos.y - 1}-${squarePos.x - 1}`);
+                if (square === null) {
+                    window.location.reload();
+                    return;
+                }
                 if (color !== "reset") {
                     board.fill[squareId] = {
                         color: color,
@@ -342,18 +360,18 @@ function newWebSocket() {
     };
 
     sock.onclose = () => {
-        document.getElementById("invite-code").innerHTML = "DISCONNECTED";
+        document.getElementById("invite-code")!!.innerHTML = "DISCONNECTED";
         sock.onclose = () => {};
         sock.close();
         ws = newWebSocket();
-    }
+    };
 
     return sock;
 }
 
 ws = newWebSocket();
 
-fetch("/api/board/?id=" + args.id).then(response => response.json()).then((json) => {
+fetch(`/api/board/?id=${boardId}`).then(response => response.json()).then((json) => {
     board.dimensions = json.dimensions;
     board.fill = json.fill;
     renderBoard(json.dimensions[0], json.dimensions[1]);
@@ -372,8 +390,8 @@ fetch("/api/board/?id=" + args.id).then(response => response.json()).then((json)
         let line = json.lines[lineId];
         board.lines[lineId] = new Line(
             lineId,
-            new Pos(line.pos1),
-            new Pos(line.pos2),
+            Pos.fromArray(line.pos1),
+            Pos.fromArray(line.pos2),
             line.thickness,
             line.color
         );
@@ -391,7 +409,7 @@ const subScale = 0.25;
 // LOGIC FUNCTIONS //
 
 // massive function to draw the tiles
-function renderBoard(x, y) {
+function renderBoard(x: number, y: number) {
     for (let i = elementGrid.length - 1; i > -1; i--) {
         for (let j = elementGrid[i].children.length - 1; j > -1; j--) {
             elementGrid[i].children[j].remove();
@@ -401,18 +419,18 @@ function renderBoard(x, y) {
         delete elementGrid[i];
     }
 
-    let tempGrid = [];
+    let tempGrid: Array<HTMLDivElement> = [];
 
     for (let i = 0; i < y; i++) {
-        let row = document.createElement('div');
-        row.className = 'row';
+        let row = document.createElement("div");
+        row.className = "row";
         row.id = "row-" + i;
         row.style.width = (getScale() * x) + "px";
         row.style.height = getScale() + "px";
 
         for (let j = 0; j < x; j++) {
-            let square = document.createElement('div');
-            square.className = 'square';
+            let square = document.createElement("div");
+            square.className = "square";
             square.id = `square-${i}-${j}`;
 
             // get the alternate fill color (if it exists)
@@ -434,15 +452,15 @@ function renderBoard(x, y) {
             if ((i + j) % 2 === 0) {
                 // I'm using an overlay here so that the color will change with any
                 // background color
-                button.style.backgroundColor = 'var(--main-accent-difference)';
+                button.style.backgroundColor = "var(--main-accent-difference)";
             }
 
             button.addEventListener("click", event => {
-                let targetId = event.target.id.split("-");
+                let targetId = button.id.split("-");
 
                 clickEvent(new Pos(
-                    (targetId[3] - 0) + subScale * Math.round(event.layerX / (getScale() * subScale)),
-                    (targetId[2] - 0) + subScale * Math.round(event.layerY / (getScale() * subScale))
+                    parseInt(targetId[3]) + subScale * Math.round(event.offsetX / (getScale() * subScale)),
+                    parseInt(targetId[2]) + subScale * Math.round(event.offsetY / (getScale() * subScale))
                 ));
             });
 
@@ -459,37 +477,41 @@ function renderBoard(x, y) {
 }
 
 // massive function to manage clicks
-function clickEvent(pos) {
+function clickEvent(pos: Pos) {
     // Offset by the subscale so that you can place lines on square edges
     let linePos = new Pos(pos.x + subScale, pos.y + subScale);
     let piecePos = new Pos(Math.floor(pos.x) + 1, Math.floor(pos.y) + 1);
 
     switch (state) {
         case States.PIECE_SELECTED:
+            if (!(stateData instanceof Piece)) return;
             ws.send(`&M;${stateData.id};${piecePos.x},${piecePos.y}`);
             break;
         case States.LINE_DRAW_A:
-            stateData = {
-                thickness: document.getElementById("line-menu-thickness-input").value,
-                color: document.getElementById("line-menu-color-input").value,
-                pos: Object.freeze(linePos),
-                drawLine: function(pos2) {
+            stateData = new LineDrawStateData(
+                parseInt((document.getElementById("line-menu-thickness-input")!! as HTMLInputElement).value),
+                (document.getElementById("line-menu-color-input")!! as HTMLInputElement).value,
+                Object.freeze(linePos),
+                function(pos2) {
+                    if (!(stateData instanceof LineDrawStateData)) return;
                     ws.send(
                         `&L;${stateData.pos.x},${stateData.pos.y};` +
                         `${pos2.x},${pos2.y};` +
                         `${stateData.thickness};${stateData.color}`
                     );
                 }
-            }
+            )
             state = States.LINE_DRAW_B;
             break;
         case States.LINE_DRAW_B:
+            if (!(stateData instanceof LineDrawStateData)) return;
             stateData.drawLine(linePos);
             stateData = null;
             state = States.LINE_DRAW_A;
             break;
         case States.ADD_PIECE_B:
-            let img = document.getElementById("piece-menu-preview");
+            if (!(stateData instanceof AddPieceStateData)) return;
+            let img = (document.getElementById("piece-menu-preview")!! as HTMLImageElement);
             img.title = "";
             img.src = "";
             ws.send(
@@ -501,8 +523,7 @@ function clickEvent(pos) {
             state = States.NEUTRAL;
             break;
         case States.FILL:
-            let color = document.getElementById("fill-menu-color-input").value;
-            // TODO: add other fill colors
+            let color = (document.getElementById("fill-menu-color-input")!! as HTMLInputElement).value;
             ws.send(`&F;${piecePos.x},${piecePos.y};${color};solid`);
             break;
         case States.DELETE:
@@ -516,12 +537,16 @@ function clickEvent(pos) {
 
 // get the element for the board
 function getBoardElement() {
-    return document.getElementById("board");
+    return document.getElementById("board")!!;
 }
 
 // get the width of each tile
-function getScale() {
-    return localStorage.getItem("scale");
+function getScale(): number {
+    let scale = localStorage.getItem("scale");
+    if (scale === null) {
+        localStorage.setItem("scale", "100");
+    }
+    return scale !== null ? parseInt(scale) : 100;
 }
 
 // get whether chrome mode is enabled
@@ -530,13 +555,13 @@ function getChromeMode() {
 }
 
 // parse positions from websocket data
-function parsePos(rawPos) {
+function parsePos(rawPos: string) {
     let split = rawPos.split(",");
-    return new Pos(split[0] - 0, split[1] - 0);
+    return new Pos(parseFloat(split[0]), parseFloat(split[1]));
 }
 
 // convert cartesian coordinates to polar
-function cartesianToPolar(x, y) {
+function cartesianToPolar(x: number, y: number) {
     let distance = Math.sqrt(x * x + y * y);
     let radians = Math.atan2(y, x); // This takes y first
     return {
@@ -546,7 +571,7 @@ function cartesianToPolar(x, y) {
 }
 
 // convert polar coordinates to cartesian
-function polarToCartesian(distance, radians) {
+function polarToCartesian(distance: number, radians: number) {
     return new Pos(Math.cos(radians) * distance, Math.sin(radians) * distance);
 }
 
@@ -554,15 +579,18 @@ function polarToCartesian(distance, radians) {
 // HELPER CLASSES //
 
 class Pos {
-    constructor(x, y) {
-        if (y === undefined) {
-            y = x[1];
-            x = x[0];
-        }
+    x: number;
+    y: number;
+
+    constructor(x: number, y: number) {
         this[0] = x;
         this.x = x;
         this[1] = y;
         this.y = y;
+    }
+
+    public static fromArray(array: Array<number>): Pos {
+        return new Pos(array[0], array[1]);
     }
 }
 
@@ -570,10 +598,16 @@ class Pos {
 // DATA TYPE CLASSES //
 
 class Line {
-    constructor(id, pos1, pos2, thickness, color) {
+    id: string;
+    length: number;
+    angle: number;
+    pos: Pos;
+    element: HTMLButtonElement;
+
+    constructor(id: string, pos1: Pos, pos2: Pos, thickness: number, color: string) {
         this.id = id;
 
-        let realThickness = thickness * getScale() / 15
+        let realThickness = thickness * getScale() / 15;
 
         let polPos = cartesianToPolar(pos2.x - pos1.x, pos2.y - pos1.y);
 
@@ -633,7 +667,14 @@ class Line {
 }
 
 class Piece {
-    constructor(id, name, pos, icon) {
+    id: string;
+    name: string;
+    icon: string;
+    image: HTMLImageElement;
+    element: HTMLButtonElement;
+    _pos: Pos;
+
+    constructor(id: string, name: string, pos: Pos, icon: string) {
         this.id = id;
         this.name = name;
         this.icon = icon;
@@ -644,9 +685,9 @@ class Piece {
 
         this.element.addEventListener('click', event => {
             let pos = new Pos(
-                (this.pos.x - 1) + subScale * Math.round(event.layerX / (getScale() * subScale)),
-                (this.pos.y - 1) + subScale * Math.round(event.layerY / (getScale() * subScale))
-            )
+                (this.pos.x - 1) + subScale * Math.round(event.offsetX / (getScale() * subScale)),
+                (this.pos.y - 1) + subScale * Math.round(event.offsetY / (getScale() * subScale))
+            );
 
             let selectedPieces = document.getElementsByClassName("selected-piece");
 
@@ -659,7 +700,7 @@ class Piece {
                         }
                         stateData = null;
                     } else {
-                        state = States.NEUTRAL
+                        state = States.NEUTRAL;
                         while (selectedPieces.length > 0) {
                             selectedPieces[0].className = "piece";
                         }
@@ -728,4 +769,33 @@ class Piece {
         }
         this.element.remove();
     }
+}
+
+class AddPieceStateData {
+    name: string;
+    icon: string;
+
+    constructor(name: string, icon: string) {
+        this.name = name;
+        this.icon = icon;
+    }
+}
+
+class LineDrawStateData {
+    thickness: number;
+    color: string;
+    pos: Pos;
+    drawLine: (pos2: Pos) => void
+
+    constructor(thickness: number, color: string, pos: Pos, drawLine: (pos2: Pos) => void) {
+        this.thickness = thickness;
+        this.color = color;
+        this.pos = pos;
+        this.drawLine = drawLine;
+    }
+}
+
+interface SquareFill {
+    color: string;
+    pattern: string;
 }

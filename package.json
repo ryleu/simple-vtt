@@ -7,11 +7,16 @@
     "crypto-js": "^4.1.1",
     "fs": "^0.0.1-security",
     "https": "^1.0.0",
+    "jshint": "^2.13.5",
     "ws": "^8.5.0"
   },
   "scripts": {
-    "start": "env HTTP=true PORT=$PORT node main.js",
-    "start_i": "sudo env HTTP=true PORT=80 node main.js",
-    "start_s": "sudo env PORT=443 node main.js"
+    "start": "npx tsc && cd src && env PORT=$PORT node main.js"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.1.1",
+    "@types/node": "^18.7.18",
+    "@types/ws": "^8.5.3",
+    "typescript": "^4.8.3"
   }
 }

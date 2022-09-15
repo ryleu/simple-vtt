@@ -17,29 +17,17 @@ found at <https://simple-vtt.herokuapp.com>.
  - [Attribution](#attribution)
 
 ## Configuration
-`config.json` looks like this:
 
-```json
-{
-  "auth": {
-    "key": "/path/to/https/privkey.pem",
-    "cert": "/path/to/https/fullchain.pem"
-  }
-}
-```
-
-The port must be set through the `$PORT` environment variable.
+The port is set through the `$PORT` environment variable.
 
 ## Running
 
 Install Node.JS and NPM and then run `npm i` in the project root.
 
-Use `npm run start_s` to start the server with HTTPS. Use
-`rpm run start_i` to run an HTTP version. Running `npm start` will
-launch the Heroku version of simple-vtt.
+Use `npm run start` to start the server.
 
 ## Protocol
-S-VTT uses a straightforward spec for websocket communication:
+S-VTT uses a simplistic spec for websocket communication:
 
 |      Action       |                   Request                    |                         Response                          | Description                                                                                                                                     |
 |:-----------------:|:--------------------------------------------:|:---------------------------------------------------------:|:------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -72,6 +60,7 @@ Any other path is sourced from `site/`.
  - [x] Heroku deploy support
  - [x] Tile fills
  - [x] Chromium / Webkit support
+ - [x] Rewrite in TypeScript
  - [ ] Default pieces
  - [ ] Custom saved pieces
  - [ ] ~~Game master~~ This will never be implemented in v1.x.x.

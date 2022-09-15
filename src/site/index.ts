@@ -13,7 +13,7 @@ You should have received a copy of the GNU Affero General Public License along w
 <https://www.gnu.org/licenses/>.
 */
 
-let inputBox = document.getElementById("code-input");
+let inputBox = (document.getElementById("code-input")!! as HTMLInputElement);
 
 inputBox.disabled = true;
 inputBox.value = "";
