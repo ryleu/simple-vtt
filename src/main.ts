@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /*
 COPYRIGHT (c) 2022 Riley <riley@ryleu.me>
 
