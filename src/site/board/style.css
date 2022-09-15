@@ -22,12 +22,15 @@ You should have received a copy of the GNU Affero General Public License along w
     --selected-yellow: #ffff00;
 }
 
+* {
+    color: var(--text-color);
+}
+
 html, body {
     background-color: var(--bg-color);
     scrollbar-color: #454a4d #202324;
     overflow: hidden;
     font: 1em Whitney, "Helvetica Neue", Helvetica, Arial, sans-serif;
-    color: var(--text-color);
 }
 
 body {
