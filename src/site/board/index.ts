@@ -13,6 +13,8 @@ You should have received a copy of the GNU Affero General Public License along w
 <https://www.gnu.org/licenses/>.
 */
 
+setScale(getScale());
+
 document.getElementById("js-message")!!.style.display = "none"
 
 let boardId = "";
@@ -254,20 +256,23 @@ function newWebSocket() {
             document.getElementById("config-menu")!!.className = "hidden-menu";
         });
 
-        // config scale
-        document.getElementById("config-menu-rescale")!!.addEventListener("click", () => {
+        function rescale() {
             let inputElement = (document.getElementById("config-menu-scale-input")!! as HTMLInputElement);
             let scaleInput = parseInt(inputElement.value);
 
             if (scaleInput < 25) {
                 inputElement.value = "25";
+                scaleInput = 25;
             } else if (scaleInput > 300) {
                 inputElement.value = "300";
-            } else {
-                localStorage.setItem("scale", Math.round(scaleInput).toString());
-                window.location.reload();
+                scaleInput = 300;
             }
-        });
+            setScale(Math.round(scaleInput));
+        }
+
+        // config scale
+        document.getElementById("config-menu-rescale")!!.addEventListener("click", rescale);
+        (document.getElementById("config-menu-scale-input")!! as HTMLInputElement).addEventListener("change", rescale);
 
         // config dimensions
         document.getElementById("config-menu-dims-apply")!!.addEventListener("click", () => {
@@ -478,8 +483,8 @@ function renderBoard(x: number, y: number) {
         let row = document.createElement("div");
         row.className = "row";
         row.id = "row-" + i;
-        row.style.width = (getScale() * x) + "px";
-        row.style.height = getScale() + "px";
+        row.style.width = `calc(var(--scale) * ${x}px)`;
+        row.style.height = "calc(var(--scale) * 1px)";
 
         for (let j = 0; j < x; j++) {
             let square = document.createElement("div");
@@ -493,15 +498,15 @@ function renderBoard(x: number, y: number) {
             }
 
             // this is some basic chess board color logic
-            square.style.width = getScale() + "px";
-            square.style.height = getScale() + "px";
-            square.style.left = getScale() * j + "px";
+            square.style.width = "calc(var(--scale) * 1px)";
+            square.style.height = "calc(var(--scale) * 1px)";
+            square.style.left = `calc(var(--scale) * ${j}px)`;
 
             let button = document.createElement("button");
             button.className = "square-button";
             button.id = `square-button-${i}-${j}`;
-            button.style.width = getScale() + "px";
-            button.style.height = getScale() + "px";
+            button.style.width = "calc(var(--scale) * 1px)";
+            button.style.height = "calc(var(--scale) * 1px)";
             if ((i + j) % 2 === 0) {
                 // I'm using an overlay here so that the color will change with any
                 // background color
@@ -521,8 +526,8 @@ function renderBoard(x: number, y: number) {
             row.appendChild(square);
         }
         getBoardElement().appendChild(row);
-        getBoardElement().style.width = x * getScale() + "px";
-        getBoardElement().style.height = (y * getScale() + 100) + "px";
+        getBoardElement().style.width = `calc(var(--scale) * ${x}px)`;
+        getBoardElement().style.height = `calc(var(--scale) * ${y}px + 100px)`;
         tempGrid.push(row);
     }
 
@@ -597,9 +602,15 @@ function getBoardElement() {
 function getScale(): number {
     let scale = localStorage.getItem("scale");
     if (scale === null) {
-        localStorage.setItem("scale", "100");
+        setScale(100);
+        return getScale();
     }
-    return scale !== null ? parseInt(scale) : 100;
+    return parseInt(scale);
+}
+
+function setScale(newScale: number) {
+    localStorage.setItem("scale", newScale.toString());
+    (document.querySelector(':root') as HTMLElement).style.setProperty("--scale", newScale.toString());
 }
 
 // get whether chrome mode is enabled
@@ -656,8 +667,6 @@ class Line {
     constructor(id: string, pos1: Pos, pos2: Pos, thickness: number, color: string) {
         this.id = id;
 
-        let realThickness = thickness * getScale() / 15;
-
         let polPos = cartesianToPolar(pos2.x - pos1.x, pos2.y - pos1.y);
 
         this.length = polPos.distance;
@@ -690,19 +699,19 @@ class Line {
         this.element.className = "line";
         this.element.id = `line-${this.id}`;
 
-        this.element.style.width = this.length * getScale() + "px";
-        this.element.style.height = realThickness + "px";
+        this.element.style.width = `calc(var(--scale) * ${this.length}px)`;
+        this.element.style.height = `calc(var(--scale) * ${thickness}px / 15)`;
 
         this.element.style.backgroundColor = color;
         this.element.style.borderColor = color;
         // transform because the actual value is offset by the subscale
         this.element.style.transform =
-            `translateY(${-(realThickness / 2 + getScale() * subScale)}px)` +
-            `translateX(${-getScale() * subScale}px)` +
+            `translateY(calc(-${thickness}px * var(--scale) / 30 - var(--scale) * ${subScale}px))` +
+            `translateX(calc(var(--scale) * -${subScale}px))` +
             `rotate(${this.angle}rad)`;
 
-        this.element.style.left = this.pos.x * getScale() + "px";
-        this.element.style.top = this.pos.y * getScale() + "px";
+        this.element.style.left = `calc(${this.pos.x}px * var(--scale))`;
+        this.element.style.top = `calc(${this.pos.y}px * var(--scale))`;
 
         getBoardElement().appendChild(this.element);
     }
@@ -774,8 +783,8 @@ class Piece {
 
         this.image.className = "piece-image";
         this.image.id = `piece-image-${id}`;
-        this.image.style.width = getScale() + "px";
-        this.image.style.height = getScale() + "px";
+        this.image.style.width = "calc(var(--scale) * 1px)";
+        this.image.style.height = "calc(var(--scale) * 1px)";
         this.image.src = icon;
         this.element.appendChild(this.image);
 
@@ -783,8 +792,8 @@ class Piece {
         this.element.id = `piece-${id}`;
         this.element.title = name;
 
-        this.element.style.width = getScale() + "px";
-        this.element.style.height = getScale() + "px";
+        this.element.style.width = "calc(var(--scale) * 1px)";
+        this.element.style.height = "calc(var(--scale) * 1px)";
 
         this.pos = new Pos(pos[0], pos[1]);
     }
@@ -797,7 +806,7 @@ class Piece {
         }
         this._pos = newPos;
         this.remove();
-        this.element.style.left = (newPos.x - 1) * getScale() + "px";
+        this.element.style.left = `calc(var(--scale) * ${newPos.x - 1}px)`;
 
         try {
             elementGrid[newPos.y - 1].appendChild(this.element);
