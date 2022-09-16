@@ -39,7 +39,7 @@ S-VTT uses a simplistic spec for websocket communication:
 |    Fill a tile    |         `&F;<x>,<y>;<color>;<style>`         |               `&F;<x>,<y>;<color>;<style>`                | `x,y`: Tile coordinate pair <br /> `color:` Hex color code <br /> `style:` Style of fill. Options: solid. Default: solid.                       |
 | Re-size the board |                 `&B;<x>,<y>`                 |                       `&B;<x>,<y>`                        | `x,y` Integer length / width pair                                                                                                               |
 |  Clear the board  |                     `&C`                     |                        `&B;30,15`                         | None                                                                                                                                            |
-|    Join a room    |                `&A;<invite>`                 |                       `&A;<invite>`                       | Invite code                                                                                                                                     |
+|    Join a room    |                `&A;<invite>`                 |                       `&A;<invite>;<success>`             | `invite`: Invite code <br /> `success`: true if the session exists, false if it does not                                                        |
 
 There are also an HTTP API at `/api/`:
 
@@ -61,6 +61,7 @@ Any other path is sourced from `site/`.
  - [x] Tile fills
  - [x] Chromium / Webkit support
  - [x] Rewrite in TypeScript
+ - [x] Reactive design for mobile
  - [ ] Default pieces
  - [ ] Custom saved pieces
  - [ ] ~~Game master~~ This will never be implemented in v1.x.x.

@@ -1,7 +1,7 @@
 {
   "name": "simple-vtt",
   "license": "AGPL-3.0-or-later",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "homepage": "https://vtt.ryleu.me/",
   "dependencies": {
     "crypto-js": "^4.1.1",

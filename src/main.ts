@@ -80,6 +80,7 @@ function cacheFiles(head: string, fileList: Array<DirectoryCacheReference | File
             } catch (e) {
                 if (e.errno === -2) {
                     outObj[path] = { data: "not found", type: "error" };
+                    console.log("not found:", path);
                 } else {
                     console.log(path);
                     throw e;
@@ -89,7 +90,10 @@ function cacheFiles(head: string, fileList: Array<DirectoryCacheReference | File
             const toAppend = cacheFiles(`${head}/${file.name}`, file.files);
             const toAppendKeys = Object.keys(toAppend);
 
-            toAppendKeys.forEach(toAppendKey => outObj[toAppendKey] = toAppend[toAppendKey]);
+            toAppendKeys.forEach(toAppendKey => {
+                outObj[toAppendKey] = toAppend[toAppendKey];
+                console.log("cached", toAppendKey);
+            });
         }
     });
 

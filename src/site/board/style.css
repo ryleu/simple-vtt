@@ -70,7 +70,7 @@ body {
 .endcap {
     height: 80px;
     width: 100px;
-    margin-left: 10px;
+    margin-left: 20px;
 }
 
 .flexspace {
@@ -229,4 +229,23 @@ body {
 
 .selected-piece:active {
     border-style: solid;
+}
+
+@media screen and (max-width: 1100px) {
+
+    .endcap {
+        display: none;
+    }
+
+    .menu {
+        overflow-x: scroll;
+        overflow-y: hidden;
+        padding-bottom: 10px;
+    }
+}
+
+@media screen and (max-width: 930px) {
+    .flexbox {
+        flex-grow: 0;
+    }
 }

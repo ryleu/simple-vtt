@@ -107,7 +107,7 @@ function newWebSocket() {
         // make the board holder visible
         document.getElementById("board-holder")!!.style.display = "inherit";
         // display the invite code
-        document.getElementById("invite-code")!!.innerHTML = `Invite: ${boardId}`;
+        document.getElementById("invite-code")!!.innerHTML = `Invite:&nbsp;${boardId}`;
         // set up the download button
         let downloadButton = document.getElementById("config-menu-download")!! as HTMLAnchorElement;
         downloadButton.href = `/api/board/?id=${boardId}`;
@@ -259,8 +259,8 @@ function newWebSocket() {
             let inputElement = (document.getElementById("config-menu-scale-input")!! as HTMLInputElement);
             let scaleInput = parseInt(inputElement.value);
 
-            if (scaleInput < 50) {
-                inputElement.value = "50";
+            if (scaleInput < 25) {
+                inputElement.value = "25";
             } else if (scaleInput > 300) {
                 inputElement.value = "300";
             } else {
@@ -278,7 +278,7 @@ function newWebSocket() {
             let dimsInputY = parseFloat(yInputElement.value);
 
             // clamp our values
-            if (dimsInputX >= 1 && dimsInputX <= 100 && dimsInputY >= 1 && dimsInputY <= 100 && (dimsInputX % 1 === 0) && (dimsInputY % 1 === 0)) {
+            if (dimsInputX >= 1 && dimsInputX <= 100 && dimsInputY >= 1 && dimsInputY <= 75 && (dimsInputX % 1 === 0) && (dimsInputY % 1 === 0)) {
                 sock.send(`&B;${dimsInputX},${dimsInputY}`);
                 return;
             }
@@ -287,15 +287,15 @@ function newWebSocket() {
             if (dimsInputX < 1) {
                 xInputElement.value = "1";
             } else if (dimsInputX > 100) {
-                xInputElement.value = "300";
+                xInputElement.value = "100";
             } else if (dimsInputX % 1 !== 0) {
                 xInputElement.value = Math.round(dimsInputX).toString();
             }
 
             if (dimsInputY < 1) {
                 yInputElement.value = "1";
-            } else if (dimsInputY > 100) {
-                yInputElement.value = "300";
+            } else if (dimsInputY > 75) {
+                yInputElement.value = "75";
             } else if (dimsInputY % 1 !== 0) {
                 xInputElement.value = Math.round(dimsInputY).toString();
             }
@@ -398,7 +398,7 @@ function newWebSocket() {
                 break;
             case "A":
                 if (data[1] !== "true") {
-                    document.getElementById("invite-code")!!.innerHTML = "Websocket Error";
+                    document.getElementById("invite-code")!!.innerHTML = "Websocket&nbsp;Error";
                     stop();
                 }
         }
@@ -449,7 +449,7 @@ fetch(`/api/board/?id=${boardId}`)
             });
         } else {
             // display an error
-            document.getElementById("invite-code")!!.innerHTML = `${response.status}—Error fetching board.}`;
+            document.getElementById("invite-code")!!.innerHTML = `Board&nbsp;${response.status}}`;
         }
     });
 
@@ -695,7 +695,7 @@ class Line {
 
         this.element.style.backgroundColor = color;
         this.element.style.borderColor = color;
-        // Crazy transform because the actual value is offset by the subscale
+        // transform because the actual value is offset by the subscale
         this.element.style.transform =
             `translateY(${-(realThickness / 2 + getScale() * subScale)}px)` +
             `translateX(${-getScale() * subScale}px)` +
