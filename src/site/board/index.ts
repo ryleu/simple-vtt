@@ -16,16 +16,16 @@ You should have received a copy of the GNU Affero General Public License along w
 document.getElementById("js-message")!!.style.display = "none"
 
 let boardId = "";
-if (document.URL.split("?")[1]) {
-    document.URL.split("?")[1].split("&").forEach((arg) => {
-        let splitArg = arg.split("=");
-        if (splitArg[0] === "id") {
-            boardId = splitArg[1];
-        }
-    });
-}
 
+// split up the stuff after the question mark (arguments) by &
+boardId = document
+    .URL
+    .split("?")[1]!!
+    .split("&")
+    .map(arg => arg.split("="))
+    .filter(splitArg => splitArg[0] === "id")[0][1];
 
+// create an empty board
 let board: {
     dimensions: Pos,
     pieces: { [index: string]: Piece },
@@ -52,21 +52,36 @@ const States = Object.freeze({
     FILL: Symbol("fill"), // fill a tile with a color
 });
 
+// default state
 let state = States.NEUTRAL;
-let stateData: AddPieceStateData | Piece | Line | LineDrawStateData | null = null;
+
+/*
+ * neutral -> null
+ * line draw a -> null
+ * line draw b -> LineDrawStateData
+ * piece selected -> Piece
+ * delete -> Piece | Line
+ * add piece a -> null
+ * add piece b -> AddPieceStateData
+ * fill -> null
+*/
+let stateData: null | LineDrawStateData | Piece | Line | AddPieceStateData = null;
 
 // </states>
 
-
+// keep track of the grid in javascript so we don't have to repeatedly check the DOM
 let elementGrid: Array<HTMLElement> = [];
 
+// switches for prepping the board
 let wsReady = false;
 let jsonReady = false;
 
+// various variables for managing the websocket URL
 let websocketURL: string;
 let splitURL = document.URL.split(":");
 let overridePort = parseInt(splitURL[2]) !== NaN;
 
+// determine the websocket URL
 if (splitURL[0] === "https") {
     websocketURL = `wss://${document.URL.split("//")[1].split("/")[0]}${overridePort ? "" : ":443"}`;
 } else {
@@ -75,30 +90,46 @@ if (splitURL[0] === "https") {
 
 let ws: WebSocket;
 
+// create the websocket. this is called whenever the websocket is destroyed or disconnected
 function newWebSocket() {
+    // use the URL we determined earlier
     let sock = new WebSocket(websocketURL);
 
+    // when the socket is opened
     sock.onopen = () => {
+        // try to connect to a board
         sock.send(`&A;${boardId}`);
 
+        // make the main menu visible
         document.getElementById("main-menu")!!.className = "menu";
+        // remove the loading cursor
         document.getElementById("body")!!.style.cursor = "default";
+        // make the board holder visible
         document.getElementById("board-holder")!!.style.display = "inherit";
+        // display the invite code
         document.getElementById("invite-code")!!.innerHTML = `Invite: ${boardId}`;
-        (document.getElementById("config-menu-download")!! as HTMLAnchorElement).href = `/api/board/?id=${boardId}`;
-        let downloadButton = document.getElementById("config-menu-download")!!;
+        // set up the download button
+        let downloadButton = document.getElementById("config-menu-download")!! as HTMLAnchorElement;
+        downloadButton.href = `/api/board/?id=${boardId}`;
+
+        // when the download button is clicked...
         downloadButton.addEventListener("click", () => {
+            // if the socket is open, the webserver is probably available
             if (sock.readyState === sock.OPEN) {
+                // create a download link and click it (because buttons can't have hrefs on some browsers I could mention)
+                // fuck you, apple. webkit was never good and it never will be
                 const link = document.createElement("a");
                 link.download = "board.json";
                 link.href = `/api/board/?id=${boardId}`;
                 link.click();
             } else {
+                // if the socket isn't open, something probably got messed up with the server, so let's just be safe and copy the board to the clip
                 let boardString = JSON.stringify(board);
                 navigator.clipboard.writeText(boardString).then(() => {
-                    const boardElement = document.getElementById("board")!!;
+                    const boardElement = document.getElementById("board")!! as HTMLDivElement;
                     boardElement.innerHTML = "";
 
+                    // make a warning, explaning what happened to the user
                     const label = document.createElement("h1");
                     label.className = "warning";
                     label.textContent = "Board copied to clipboard because the site was unreachable.";
@@ -113,6 +144,7 @@ function newWebSocket() {
             }
         });
 
+        // websocket setup is done, so we can set our switch
         wsReady = true;
 
         // <mapping-buttons> //
@@ -132,6 +164,7 @@ function newWebSocket() {
             document.getElementById("main-menu")!!.className = "menu";
             document.getElementById("add-piece-menu")!!.className = "hidden-menu";
 
+            // clear our piece menu when closing it
             (document.getElementById("piece-menu-name-input") as HTMLInputElement)!!.value = "";
             (document.getElementById("piece-menu-icon-input") as HTMLInputElement)!!.value = "";
             let img = document.getElementById("piece-menu-preview")!! as HTMLImageElement;
@@ -206,6 +239,7 @@ function newWebSocket() {
 
         // // config button
         document.getElementById("menu-config")!!.addEventListener("click", () => {
+            // populate the dimensions and scale input fields
             (document.getElementById("config-menu-scale-input")!! as HTMLInputElement).value = getScale().toString();
             (document.getElementById("config-menu-dims-input-x")!! as HTMLInputElement).value = board.dimensions.x.toString();
             (document.getElementById("config-menu-dims-input-y")!! as HTMLInputElement).value = board.dimensions.y.toString();
@@ -240,24 +274,30 @@ function newWebSocket() {
             let xInputElement = (document.getElementById("config-menu-dims-input-x")!! as HTMLInputElement)
             let yInputElement = (document.getElementById("config-menu-dims-input-y")!! as HTMLInputElement)
 
-            let dimsInputX = Math.round(parseFloat(xInputElement.value));
-            let dimsInputY = Math.round(parseFloat(yInputElement.value));
+            let dimsInputX = parseFloat(xInputElement.value);
+            let dimsInputY = parseFloat(yInputElement.value);
 
-            if (dimsInputX >= 1 && dimsInputX <= 100 && dimsInputY >= 1 && dimsInputY <= 100) {
+            // clamp our values
+            if (dimsInputX >= 1 && dimsInputX <= 100 && dimsInputY >= 1 && dimsInputY <= 100 && (dimsInputX % 1 === 0) && (dimsInputY % 1 === 0)) {
                 sock.send(`&B;${dimsInputX},${dimsInputY}`);
                 return;
             }
 
+            // set them in the UI if they're too large or too small or not integers
             if (dimsInputX < 1) {
                 xInputElement.value = "1";
             } else if (dimsInputX > 100) {
                 xInputElement.value = "300";
+            } else if (dimsInputX % 1 !== 0) {
+                xInputElement.value = Math.round(dimsInputX).toString();
             }
 
             if (dimsInputY < 1) {
                 yInputElement.value = "1";
             } else if (dimsInputY > 100) {
                 yInputElement.value = "300";
+            } else if (dimsInputY % 1 !== 0) {
+                xInputElement.value = Math.round(dimsInputY).toString();
             }
         });
 
@@ -356,6 +396,11 @@ function newWebSocket() {
                     square.style.backgroundColor = "var(--main-color)";
                 }
                 break;
+            case "A":
+                if (data[1] !== "true") {
+                    document.getElementById("invite-code")!!.innerHTML = "Websocket Error";
+                    stop();
+                }
         }
     };
 
@@ -371,34 +416,42 @@ function newWebSocket() {
 
 ws = newWebSocket();
 
-fetch(`/api/board/?id=${boardId}`).then(response => response.json()).then((json) => {
-    board.dimensions = json.dimensions;
-    board.fill = json.fill;
-    renderBoard(json.dimensions[0], json.dimensions[1]);
-
-    Object.keys(json.pieces).forEach((pieceId) => {
-        let piece = json.pieces[pieceId];
-        board.pieces[pieceId] = new Piece(
-            pieceId,
-            piece.name,
-            piece.pos,
-            piece.icon
-        );
+fetch(`/api/board/?id=${boardId}`)
+    .then(response => {
+        if (response.ok) {
+            response.json().then(json => {
+                board.dimensions = json.dimensions;
+                board.fill = json.fill;
+                renderBoard(json.dimensions[0], json.dimensions[1]);
+            
+                Object.keys(json.pieces).forEach((pieceId) => {
+                    let piece = json.pieces[pieceId];
+                    board.pieces[pieceId] = new Piece(
+                        pieceId,
+                        piece.name,
+                        piece.pos,
+                        piece.icon
+                    );
+                });
+            
+                Object.keys(json.lines).forEach((lineId) => {
+                    let line = json.lines[lineId];
+                    board.lines[lineId] = new Line(
+                        lineId,
+                        line.pos1 as Pos,
+                        line.pos2 as Pos,
+                        line.thickness,
+                        line.color
+                    );
+                });
+            
+                jsonReady = true;
+            });
+        } else {
+            // display an error
+            document.getElementById("invite-code")!!.innerHTML = `${response.status}—Error fetching board.}`;
+        }
     });
-
-    Object.keys(json.lines).forEach((lineId) => {
-        let line = json.lines[lineId];
-        board.lines[lineId] = new Line(
-            lineId,
-            Pos.fromArray(line.pos1),
-            Pos.fromArray(line.pos2),
-            line.thickness,
-            line.color
-        );
-    });
-
-    jsonReady = true;
-});
 
 // RENDERING //
 
@@ -587,10 +640,6 @@ class Pos {
         this.x = x;
         this[1] = y;
         this.y = y;
-    }
-
-    public static fromArray(array: Array<number>): Pos {
-        return new Pos(array[0], array[1]);
     }
 }
 

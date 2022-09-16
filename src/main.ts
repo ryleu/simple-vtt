@@ -53,9 +53,7 @@ class DirectoryCacheReference implements FileCacheReference {
 function cacheFiles(head: string, fileList: Array<DirectoryCacheReference | FileCacheReference>): { [index: string]: {data: string, type: string} } {
     const outObj: { [index: string]: {data: string, type: string} } = {};
 
-    for (let i = 0; i < fileList.length; i++) {
-        let file = fileList[i];
-
+    fileList.forEach(file => {
         if (!(file instanceof DirectoryCacheReference)) {
             let path = `${head}/${file.name}`;
 
@@ -91,12 +89,9 @@ function cacheFiles(head: string, fileList: Array<DirectoryCacheReference | File
             const toAppend = cacheFiles(`${head}/${file.name}`, file.files);
             const toAppendKeys = Object.keys(toAppend);
 
-            for (let j = 0; j < toAppendKeys.length; j++) {
-                const toAppendKey = toAppendKeys[j];
-                outObj[toAppendKey] = toAppend[toAppendKey];
-            }
+            toAppendKeys.forEach(toAppendKey => outObj[toAppendKey] = toAppend[toAppendKey]);
         }
-    }
+    });
 
     return outObj;
 }
@@ -147,7 +142,7 @@ const noJson =
 ⠀⠀⠀⠀⠁⠇⠡⠩⡫⢿⣝⡻⡮⣒⢽⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ————————————————————————————————————`;
 
-const port = ((n) => (n >= 0 && n < 65536) ? n : 8080)(parseInt(process.env.PORT ?? ""));
+const port = (n => (n >= 0 && n < 65536) ? n : 8080)(parseInt(process.env.PORT ?? ""));
 
 type SocketPair = { socket: ws.WebSocket, sessionId: string | null }
 
@@ -162,13 +157,13 @@ const server = http.createServer((req: http.IncomingMessage, res: http.ServerRes
         res.statusCode = 200;
 
         // If this is an api request, use different handling
-        if (req.url!!.match(apiRe)) {
+        if (req.url.match(apiRe)) {
             let data = "";
             req.on("data", chunk => {
                 data += chunk;
             });
             req.on("end", () => {
-                let url = req.url!!.split("?");
+                let url = req.url.split("?");
                 let resource = url[0];
 
                 if (resource[resource.length - 1] !== "/") {
@@ -186,7 +181,7 @@ const server = http.createServer((req: http.IncomingMessage, res: http.ServerRes
                         res.setHeader("Allow", "GET, PUT");
                         let id = args.id;
                         if (!args.id || !sessions[id]) {
-                            res.statusCode = 403;
+                            res.statusCode = 404;
                             res.end("There is no session with that ID.");
                             break;
                         }
@@ -224,20 +219,20 @@ const server = http.createServer((req: http.IncomingMessage, res: http.ServerRes
                                 if (json.pieceCount === undefined) {
                                     let highest = 0;
 
-                                    for (let i = 0; i < pieceKeys.length; i++) {
-                                        const piece = json.pieces[pieceKeys[i]];
+                                    pieceKeys.forEach(pieceKey => {
+                                        const piece = json.pieces[pieceKey];
                                         const pieceNumber = parseInt(piece.id.split("-")[0]);
                                         highest = Math.max(highest, pieceNumber);
-                                    }
+                                    });
                                 }
 
-                                for (let i = 0; i < pieceKeys.length; i++) {
+                                pieceKeys.forEach(pieceKey => {
                                     if (json.pieces.pos === undefined) {
-                                        const pos = json.pieces[pieceKeys[i]]._pos!!;
-                                        json.pieces[pieceKeys[i]].pos = pos;
-                                        delete json.pieces[pieceKeys[i]]._pos;
+                                        const pos = json.pieces[pieceKey]._pos;
+                                        json.pieces[pieceKey].pos = pos;
+                                        delete json.pieces[pieceKey]._pos;
                                     }
-                                }
+                                });
 
                                 sessions[args.id].board = json;
 
@@ -282,7 +277,7 @@ const server = http.createServer((req: http.IncomingMessage, res: http.ServerRes
         }
 
         // Start building the file request path
-        let path = "site" + req.url!!.split("?")[0];
+        let path = "site" + req.url.split("?")[0];
         if (path[path.length - 1] === "/") {
             path += "index.html";
         }
@@ -319,14 +314,10 @@ wss.on('connection', function(socket) {
         
         let socketPair: SocketPair | null = null;
 
-        for (let i = 0; i < socketPairs.length; i++) {
-            if (socketPairs[i].socket === socket) {
-                socketPair = socketPairs[i];
-            }
-        }
+        socketPair = socketPairs.filter(sp => sp.socket === socket)[0];
 
         try {
-            if (socketPair === null) throw Error("socketPair was left undefined somehow");
+            if (socketPair === null) throw Error("socketPair was left null somehow");
 
             console.log(socketPair.sessionId, msgStr);
 
@@ -337,13 +328,13 @@ wss.on('connection', function(socket) {
             if (!socketPair.sessionId) {
                 let id = data[0];
                 if (action === "A" && sessions[id]) {
-                    socketPair.socket.send(msgStr);
+                    socketPair.socket.send(`${msgStr};true`);
                     socketPair.sessionId = id;
-                    sessions[id].socketPairs.push(socketPair);
-
-                    // TODO: figure out why this was here
-                    // socketPairs = socketPairs.filter(s => s.socket !== socket);
-                } else {
+                    if (!sessions[id].socketPairs.map(sp => sp.socket).includes(socketPair.socket)) {
+                        sessions[id].socketPairs.push(socketPair);
+                    }
+                } else if (!sessions[id]) {
+                    socketPair.socket.send(`${msgStr};false`);
                     return;
                 }
             }
@@ -442,11 +433,7 @@ wss.on('connection', function(socket) {
     socket.on('close', function() {
         let socketPair: { socket: ws.WebSocket, sessionId: string | null } | null = null;
 
-        for (let i = 0; i < socketPairs.length; i++) {
-            if (socketPairs[i].socket === socket) {
-                socketPair = socketPairs[i];
-            }
-        }
+        socketPair = socketPairs.filter(sp => sp.socket === socket)[0];
 
         if (socketPair === null) return console.error("failed to remove socket", socket);
 
@@ -470,6 +457,8 @@ function genInviteCode() {
     let b = "23456789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrtuvwxyz_";
     let base10 = Math.floor(Math.random() * Math.pow(10, 16));
     let output = "";
+
+    // this is literally a base 10 to base however-long-b-is conversion
     while (base10 > 0) {
         output += b[base10 % b.length];
         base10 = Math.floor((base10 - (base10 % b.length)) / b.length);
@@ -526,9 +515,5 @@ class Pos {
         this.x = x;
         this[1] = y;
         this.y = y;
-    }
-
-    public static fromArray(array: Array<number>): Pos {
-        return new Pos(array[0], array[1]);
     }
 }
