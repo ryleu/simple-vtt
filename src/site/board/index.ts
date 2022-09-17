@@ -43,16 +43,16 @@ let board: {
 
 // <states>
 
-const States = Object.freeze({
-    NEUTRAL: Symbol("neutral"), // nothing selected
-    LINE_DRAW_A: Symbol("lineA"), // line drawing, no point yet
-    LINE_DRAW_B: Symbol("lineB"), // line drawing, only 1 point
-    PIECE_SELECTED: Symbol("piece"), // piece selected
-    DELETE: Symbol("delete"), // delete mode
-    ADD_PIECE_A: Symbol("addA"), // add piece, not complete
-    ADD_PIECE_B: Symbol("addB"), // add piece, not completeDimensionsDimensions
-    FILL: Symbol("fill"), // fill a tile with a color
-});
+enum States {
+    NEUTRAL = "neutral", // nothing selected
+    LINE_DRAW_A = "lineA", // line drawing, no point yet
+    LINE_DRAW_B = "lineB", // line drawing, only 1 point
+    PIECE_SELECTED = "piece", // piece selected
+    DELETE = "delete", // delete mode
+    ADD_PIECE_A = "addA", // add piece, not complete
+    ADD_PIECE_B = "addB", // add piece, not completeDimensionsDimensions
+    FILL = "fill", // fill a tile with a color
+}
 
 // default state
 let state = States.NEUTRAL;
@@ -116,34 +116,73 @@ function newWebSocket() {
 
         // when the download button is clicked...
         downloadButton.addEventListener("click", () => {
+            const link = document.createElement("a");
+            link.download = `board-${boardId}.json`;
+
             // if the socket is open, the webserver is probably available
             if (sock.readyState === sock.OPEN) {
                 // create a download link and click it (because buttons can't have hrefs on some browsers I could mention)
                 // fuck you, apple. webkit was never good and it never will be
-                const link = document.createElement("a");
-                link.download = "board.json";
                 link.href = `/api/board/?id=${boardId}`;
-                link.click();
             } else {
-                // if the socket isn't open, something probably got messed up with the server, so let's just be safe and copy the board to the clip
-                let boardString = JSON.stringify(board);
-                navigator.clipboard.writeText(boardString).then(() => {
-                    const boardElement = document.getElementById("board")!! as HTMLDivElement;
-                    boardElement.innerHTML = "";
+                // if the socket isn't open, something probably got messed up with the server, so we have to download based 
+                //  on what the client thinks the board is like
+                let fixedBoard: ServerBoard;
+                
+                // we have some conversions to do before this will work on the server...
+                // first, we need to calculate pieceCount
+                const pieceKeys = Object.keys(board.pieces);
+                let pieceCount = 0;
 
-                    // make a warning, explaning what happened to the user
-                    const label = document.createElement("h1");
-                    label.className = "warning";
-                    label.textContent = "Board copied to clipboard because the site was unreachable.";
+                // while we're doing that, we migt as well convert the piece type
+                let pieces: {
+                    [index: string]: ServerPiece
+                } = {};
 
-                    boardElement.appendChild(label);
+                pieceKeys.forEach(pieceKey => {
+                    const piece = board.pieces[pieceKey];
+                    const pieceNumber = parseInt(piece.id.split("-")[0]);
+                    pieceCount = Math.max(pieceCount, pieceNumber);
 
-                    const labelText = document.createElement("p");
-                    labelText.textContent = boardString;
-
-                    boardElement.appendChild(labelText);
+                    pieces[pieceKey] = {
+                        id: piece.id,
+                        name: piece.name,
+                        icon: piece.icon,
+                        pos: piece.pos
+                    }
                 });
+
+                // next, we have to convert the line type
+                let lines: {
+                    [index: string]: ServerLine
+                } = {};
+
+                Object.keys(board.lines).forEach(lineKey => {
+                    const line = board.lines[lineKey];
+
+                    lines[lineKey] = {
+                        pos1: line.pos,
+                        pos2: line.pos2,
+                        thickness: line.thickness,
+                        color: line.color
+                    }
+                });
+
+                // fills and dimensions are 1:1, so we should be good to go!
+
+                fixedBoard = {
+                    dimensions: board.dimensions,
+                    pieces: pieces,
+                    lines: lines,
+                    fill: board.fill,
+                    pieceCount: pieceCount
+                }
+
+                // now just convert it to a string and download it
+                //  thanks, SO user! https://stackoverflow.com/a/45831280
+                link.href = `data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(fixedBoard))}`;
             }
+            link.click();
         });
 
         // websocket setup is done, so we can set our switch
@@ -352,13 +391,13 @@ function newWebSocket() {
             case "S": // Add piece
                 board.pieces[data[0]] = new Piece(
                     data[0], // id
-                    atob(data[1].toString()), // base64 name
-                    parsePos(data[2]), // position
-                    atob(data[3].toString()) // base64 icon url
+                    Buffer.from(data[1], "base64").toString(), // base64 name
+                    Pos.fromString(data[2]), // position
+                    data[3].toString("base64") // base64 icon url
                 );
                 break;
             case "M": // Move piece
-                board.pieces[data[0]].pos = parsePos(data[1]);
+                board.pieces[data[0]].pos = Pos.fromString(data[1]);
                 break;
             case "D": // Delete piece
                 board.pieces[data[0]].remove();
@@ -367,8 +406,8 @@ function newWebSocket() {
             case "L": // Add line
                 board.lines[data[0]] = new Line(
                     data[0], // id
-                    parsePos(data[1]), // first position
-                    parsePos(data[2]), // second position
+                    Pos.fromString(data[1]), // first position
+                    Pos.fromString(data[2]), // second position
                     data[3] - 0, // thickness
                     data[4] // color
                 );
@@ -381,7 +420,7 @@ function newWebSocket() {
                 window.location.reload(); // jk, that's too hard, just refresh
                 break;
             case "F":
-                let squarePos = parsePos(data[0]);
+                let squarePos = Pos.fromString(data[0]);
                 let squareId = `${squarePos.x}_${squarePos.y}`;
                 let color = data[1];
                 let square = document.getElementById(`square-${squarePos.y - 1}-${squarePos.x - 1}`);
@@ -404,16 +443,15 @@ function newWebSocket() {
             case "A":
                 if (data[1] !== "true") {
                     document.getElementById("invite-code")!!.innerHTML = "Websocket&nbsp;Error";
-                    stop();
+                } else {
+                    sock.onclose = () => {
+                        document.getElementById("invite-code")!!.innerHTML = "DISCONNECTED";
+                        sock.onclose = () => {};
+                        sock.close();
+                        ws = newWebSocket();
+                    };
                 }
         }
-    };
-
-    sock.onclose = () => {
-        document.getElementById("invite-code")!!.innerHTML = "DISCONNECTED";
-        sock.onclose = () => {};
-        sock.close();
-        ws = newWebSocket();
     };
 
     return sock;
@@ -427,7 +465,7 @@ fetch(`/api/board/?id=${boardId}`)
             response.json().then(json => {
                 board.dimensions = json.dimensions;
                 board.fill = json.fill;
-                renderBoard(json.dimensions[0], json.dimensions[1]);
+                renderBoard(json.dimensions.x, json.dimensions.y);
             
                 Object.keys(json.pieces).forEach((pieceId) => {
                     let piece = json.pieces[pieceId];
@@ -454,7 +492,8 @@ fetch(`/api/board/?id=${boardId}`)
             });
         } else {
             // display an error
-            document.getElementById("invite-code")!!.innerHTML = `Board&nbsp;${response.status}}`;
+            document.getElementById("invite-code")!!.innerHTML = `Board&nbsp;${response.status}`;
+            jsonReady = true;
         }
     });
 
@@ -613,17 +652,6 @@ function setScale(newScale: number) {
     (document.querySelector(':root') as HTMLElement).style.setProperty("--scale", newScale.toString());
 }
 
-// get whether chrome mode is enabled
-function getChromeMode() {
-    return localStorage.getItem("chromeMode") === "true";
-}
-
-// parse positions from websocket data
-function parsePos(rawPos: string) {
-    let split = rawPos.split(",");
-    return new Pos(parseFloat(split[0]), parseFloat(split[1]));
-}
-
 // convert cartesian coordinates to polar
 function cartesianToPolar(x: number, y: number) {
     let distance = Math.sqrt(x * x + y * y);
@@ -639,22 +667,6 @@ function polarToCartesian(distance: number, radians: number) {
     return new Pos(Math.cos(radians) * distance, Math.sin(radians) * distance);
 }
 
-
-// HELPER CLASSES //
-
-class Pos {
-    x: number;
-    y: number;
-
-    constructor(x: number, y: number) {
-        this[0] = x;
-        this.x = x;
-        this[1] = y;
-        this.y = y;
-    }
-}
-
-
 // DATA TYPE CLASSES //
 
 class Line {
@@ -662,6 +674,9 @@ class Line {
     length: number;
     angle: number;
     pos: Pos;
+    pos2: Pos;
+    thickness: number;
+    color: string;
     element: HTMLButtonElement;
 
     constructor(id: string, pos1: Pos, pos2: Pos, thickness: number, color: string) {
@@ -673,6 +688,9 @@ class Line {
         this.angle = polPos.radians;
 
         this.pos = pos1;
+        this.pos2 = pos2;
+        this.thickness = thickness;
+        this.color = color;
 
         this.element = document.createElement("button");
 
@@ -795,7 +813,7 @@ class Piece {
         this.element.style.width = "calc(var(--scale) * 1px)";
         this.element.style.height = "calc(var(--scale) * 1px)";
 
-        this.pos = new Pos(pos[0], pos[1]);
+        this.pos = pos;
     }
 
     set pos(newPos) {
@@ -853,7 +871,63 @@ class LineDrawStateData {
     }
 }
 
+// TODO: figure out common.ts
+class Pos {
+    x: number;
+    y: number;
+
+    constructor(x: number, y: number) {
+        this.x = x;
+        this.y = y;
+    }
+
+    public static fromString(posStr: string): Pos {
+        const pos = posStr.split(",");
+        return new Pos(parseFloat(pos[0]), parseFloat(pos[1]));
+    }
+
+    public toString(): string {
+        return `${this.x},${this.y}`;
+    }
+}
+
+function toPosPair(pos1: Pos, pos2: Pos): string {
+    return pos1.x + "_" + pos1.y + "__" + pos2.x + "_" + pos2.y;
+}
+
 interface SquareFill {
     color: string;
     pattern: string;
+}
+
+enum FillPatterns {
+    SOLID = "solid"
+}
+
+interface ServerBoard {
+    dimensions: Pos;
+    pieces: {
+        [index: string]: ServerPiece
+    };
+    lines: {
+        [index: string]: ServerLine
+    };
+    fill: {
+        [index: string]: SquareFill
+    };
+    pieceCount: number;
+}
+
+interface ServerPiece {
+    id: string;
+    name: string;
+    icon: string;
+    pos: Pos;
+}
+
+interface ServerLine {
+    pos1: Pos;
+    pos2: Pos;
+    thickness: number;
+    color: string;
 }

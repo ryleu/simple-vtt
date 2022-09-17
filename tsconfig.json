@@ -2,10 +2,10 @@
     "compilerOptions": {    
       "esModuleInterop": true,
       "target": "ES6",
-      "module": "commonjs"
+      "module": "CommonJS"
     },
     "include": [
-        "src/*",
-        "src/**/*"
+      "src/*",
+      "src/**/*"
     ]
 }

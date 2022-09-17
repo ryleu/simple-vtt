@@ -16,6 +16,7 @@ import * as ws from 'ws';
 import crypto from "crypto-js";
 import * as http from "http";
 import fs from "fs";
+import { Pos, toPosPair, FillPatterns, ServerBoard } from "./site/common";
 
 console.log(
     "Copyright (c) 2022 Riley <riley@ryleu.me>\n" +
@@ -56,6 +57,7 @@ function cacheFiles(head: string, fileList: Array<DirectoryCacheReference | File
     fileList.forEach(file => {
         if (!(file instanceof DirectoryCacheReference)) {
             let path = `${head}/${file.name}`;
+            console.log("caching", path);
 
             let contentType = "text/plain";
             const extension = path.split(".").pop();
@@ -92,7 +94,6 @@ function cacheFiles(head: string, fileList: Array<DirectoryCacheReference | File
 
             toAppendKeys.forEach(toAppendKey => {
                 outObj[toAppendKey] = toAppend[toAppendKey];
-                console.log("cached", toAppendKey);
             });
         }
     });
@@ -101,6 +102,7 @@ function cacheFiles(head: string, fileList: Array<DirectoryCacheReference | File
 }
 
 const Files = Object.freeze(cacheFiles("site", [
+    { name: "common.js", type: "file" },
     { name: "index.html", type: "file" },
     { name: "index.js", type: "file" },
     { name: "style.css", type: "file" },
@@ -148,10 +150,8 @@ const noJson =
 
 const port = (n => (n >= 0 && n < 65536) ? n : 8080)(parseInt(process.env.PORT ?? ""));
 
-type SocketPair = { socket: ws.WebSocket, sessionId: string | null }
-
-let socketPairs: Array<SocketPair> = [];
-let sessions: {[sessionId: string]: { socketPairs: Array<SocketPair>, board: Board, hasBeenLoaded: boolean }} = {};
+let sockets: Array<SessionSocket> = [];
+let sessions: {[sessionId: string]: { sockets: Array<SessionSocket>, board: ServerBoard, hasBeenLoaded: boolean }} = {};
 
 const server = http.createServer((req: http.IncomingMessage, res: http.ServerResponse) => {
     console.log(`user -> ${req.url}`);
@@ -201,7 +201,7 @@ const server = http.createServer((req: http.IncomingMessage, res: http.ServerRes
                                     res.end(noJson + "\nPlease use application/json");
                                     break;
                                 }
-                                let json: Board;
+                                let json: ServerBoard;
                                 try {
                                     json = JSON.parse(data);
                                 } catch (e) {
@@ -212,37 +212,19 @@ const server = http.createServer((req: http.IncomingMessage, res: http.ServerRes
 
                                 if (json.dimensions === undefined ||
                                     json.pieces === undefined ||
-                                    json.lines === undefined) {
+                                    json.lines === undefined ||
+                                    json.fill === undefined ||
+                                    json.pieceCount === undefined) {
                                     res.statusCode = 400;
                                     res.end(noJson + "\nYour JSON is dog poo.");
                                     break;
                                 }
 
-                                const pieceKeys = Object.keys(json.pieces);
-
-                                if (json.pieceCount === undefined) {
-                                    let highest = 0;
-
-                                    pieceKeys.forEach(pieceKey => {
-                                        const piece = json.pieces[pieceKey];
-                                        const pieceNumber = parseInt(piece.id.split("-")[0]);
-                                        highest = Math.max(highest, pieceNumber);
-                                    });
-                                }
-
-                                pieceKeys.forEach(pieceKey => {
-                                    if (json.pieces.pos === undefined) {
-                                        const pos = json.pieces[pieceKey]._pos;
-                                        json.pieces[pieceKey].pos = pos;
-                                        delete json.pieces[pieceKey]._pos;
-                                    }
-                                });
-
                                 sessions[args.id].board = json;
 
                                 res.end("Successfully applied new board.");
 
-                                sessions[args.id].socketPairs.forEach(sp => sp.socket.send(`&B`));
+                                sessions[args.id].sockets.forEach(s => s.send(`&B`));
                                 break;
                             default:
                                 res.statusCode = 405;
@@ -257,7 +239,7 @@ const server = http.createServer((req: http.IncomingMessage, res: http.ServerRes
                                 let invite = genInviteCode();
                                 sessions[invite] = {
                                     board: defaultBoard(),
-                                    socketPairs: [],
+                                    sockets: [],
                                     hasBeenLoaded: false
                                 };
                                 res.setHeader("Content-Type", "application/json");
@@ -309,36 +291,30 @@ const server = http.createServer((req: http.IncomingMessage, res: http.ServerRes
 
 
 const wss = new ws.WebSocket.Server({server: server});
-wss.on('connection', function(socket) {
-    socketPairs.push({ socket: socket, sessionId: null});
+wss.on('connection', function(socket: SessionSocket) {
+    sockets.push(socket as SessionSocket);
 
     // When you receive a message, send that message to every socket.
     socket.on('message', function(msg) {
         const msgStr = msg.toString();
-        
-        let socketPair: SocketPair | null = null;
-
-        socketPair = socketPairs.filter(sp => sp.socket === socket)[0];
 
         try {
-            if (socketPair === null) throw Error("socketPair was left null somehow");
-
-            console.log(socketPair.sessionId, msgStr);
+            console.log(socket.sessionId, msgStr);
 
             const rawData = msgStr.split(";");
             const action = rawData[0].substring(1);
             const data = rawData.slice(1, rawData.length);
 
-            if (!socketPair.sessionId) {
+            if (socket.sessionId === undefined) {
                 let id = data[0];
                 if (action === "A" && sessions[id]) {
-                    socketPair.socket.send(`${msgStr};true`);
-                    socketPair.sessionId = id;
-                    if (!sessions[id].socketPairs.map(sp => sp.socket).includes(socketPair.socket)) {
-                        sessions[id].socketPairs.push(socketPair);
+                    socket.send(`${msgStr};true`);
+                    socket.sessionId = id;
+                    if (!sessions[id].sockets.includes(socket)) {
+                        sessions[id].sockets.push(socket);
                     }
                 } else if (!sessions[id]) {
-                    socketPair.socket.send(`${msgStr};false`);
+                    socket.send(`${msgStr};false`);
                     return;
                 }
             }
@@ -348,12 +324,12 @@ wss.on('connection', function(socket) {
 
             switch (action) {
                 case "S":
-                    let board = sessions[socketPair.sessionId].board;
+                    let board = sessions[socket.sessionId].board;
                     let id = `${board.pieceCount}-${crypto.MD5(board.pieceCount.toString() + data).toString()}`;
 
                     board.pieces[id] = {
                         name: atob(data[0]),
-                        pos: parsePos(data[1]),
+                        pos: Pos.fromString(data[1]),
                         icon: atob(data[2]),
                         id: id
                     };
@@ -362,32 +338,20 @@ wss.on('connection', function(socket) {
                     out = `&S;${id};${data[0]};${data[1]};${data[2]}`;
                     break;
                 case "M":
-                    sessions[socketPair.sessionId].board.pieces[data[0]].pos = parsePos(data[1]);
+                    sessions[socket.sessionId].board.pieces[data[0]].pos = Pos.fromString(data[1]);
                     break;
                 case "D":
-                    delete sessions[socketPair.sessionId].board.pieces[data[0]];
+                    delete sessions[socket.sessionId].board.pieces[data[0]];
                     break;
                 case "L":
-                    let pos1 = parsePos(data[0]);
-                    let pos2 = parsePos(data[1]);
+                    let pos1 = Pos.fromString(data[0]);
+                    let pos2 = Pos.fromString(data[1]);
                     let thickness = parseInt(data[2]);
                     let color = data[3] ? data[3] : "#000000";
 
-                    let posPair: string;
+                    let posPair = toPosPair(pos1, pos2);
 
-                    if (pos1[0] < pos2[0]) {
-                        posPair = toPosPair(pos1, pos2);
-                    } else if (pos2[0] < pos1[0]) {
-                        posPair = toPosPair(pos2, pos1);
-                    } else if (pos1[1] < pos2[1]) {
-                        posPair = toPosPair(pos1, pos2);
-                    } else if (pos2[1] < pos1[1]) {
-                        posPair = toPosPair(pos2, pos1);
-                    } else {
-                        return;
-                    }
-
-                    sessions[socketPair.sessionId].board.lines[posPair] = {
+                    sessions[socket.sessionId].board.lines[posPair] = {
                         "pos1": pos1,
                         "pos2": pos2,
                         "thickness": thickness,
@@ -397,13 +361,13 @@ wss.on('connection', function(socket) {
                     out = `&L;${posPair};${data[0]};${data[1]};${data[2]};${data[3]}`;
                     break;
                 case "R":
-                    delete sessions[socketPair.sessionId].board.lines[data[0]];
+                    delete sessions[socket.sessionId].board.lines[data[0]];
                     break;
                 case "B":
-                    sessions[socketPair.sessionId].board.dimensions = parsePos(data[0]);
+                    sessions[socket.sessionId].board.dimensions = Pos.fromString(data[0]);
                     break;
                 case "C":
-                    sessions[socketPair.sessionId].board = defaultBoard();
+                    sessions[socket.sessionId].board = defaultBoard();
                     out = "&B;30,15";
                     break;
                 case "F":
@@ -411,23 +375,23 @@ wss.on('connection', function(socket) {
                     let fillColor = data[1];
                     // TODO: add other fill patterns
 
-                    const possiblePatterns: Array<string> = []
+                    const possiblePatterns: Array<string> = Object.values(FillPatterns);
 
                     let pattern = possiblePatterns.includes(data[2]) ? data[2] : "solid";
                     if (fillColor !== "reset") {
-                        sessions[socketPair.sessionId].board.fill[squareId] = {
+                        sessions[socket.sessionId].board.fill[squareId] = {
                             color: fillColor,
                             pattern: pattern
                         };
                     } else {
-                        delete sessions[socketPair.sessionId].board.fill[squareId];
+                        delete sessions[socket.sessionId].board.fill[squareId];
                     }
                     out = `&F;${data[0]};${fillColor};${pattern}`;
                     break;
                 default:
                     return;
             }
-            sessions[socketPair.sessionId].socketPairs.forEach((sp: SocketPair) => sp.socket.send(out));
+            sessions[socket.sessionId].sockets.forEach(s => s.send(out));
         } catch (e) {
             console.error(e);
         }
@@ -435,27 +399,12 @@ wss.on('connection', function(socket) {
 
     // When a socket closes, or disconnects, remove it from the array.
     socket.on('close', function() {
-        let socketPair: { socket: ws.WebSocket, sessionId: string | null } | null = null;
-
-        socketPair = socketPairs.filter(sp => sp.socket === socket)[0];
-
-        if (socketPair === null) return console.error("failed to remove socket", socket);
-
-        socketPairs = socketPairs.filter(s => s.socket !== socket);
-        if (socketPair.sessionId) {
-            sessions[socketPair.sessionId].socketPairs = sessions[socketPair.sessionId].socketPairs.filter(s => s.socket !== socket);
+        sockets = sockets.filter(s => s !== socket);
+        if (socket.sessionId) {
+            sessions[socket.sessionId].sockets = sessions[socket.sessionId].sockets.filter(s => s !== socket);
         }
     });
 });
-
-function parsePos(posStr: string): Pos {
-    const pos = posStr.split(",");
-    return new Pos(parseFloat(pos[0]), parseFloat(pos[1]));
-}
-
-function toPosPair(pos1, pos2) {
-    return pos1[0] + "_" + pos1[1] + "__" + pos2[0] + "_" + pos2[1];
-}
 
 function genInviteCode() {
     let b = "23456789ABCDEFGHJKMNPQRTUVWXYZabcdefghjkmnpqrtuvwxyz_";
@@ -470,7 +419,7 @@ function genInviteCode() {
     return output.substring(output.length - 9, output.length - 1);
 }
 
-function defaultBoard(): Board {
+function defaultBoard(): ServerBoard {
     return {
         dimensions: new Pos(30, 15),
         pieces: {},
@@ -482,42 +431,7 @@ function defaultBoard(): Board {
 
 
 // TYPES //
-interface Board {
-    dimensions: Pos;
-    pieces: {
-        [index: string]: {
-            id: string;
-            name: string;
-            icon: string;
-            pos: Pos;
-            _pos?: Pos;
-        }
-    };
-    lines: {
-        [index: string]: {
-            pos1: Pos;
-            pos2: Pos;
-            thickness: number;
-            color: string;
-        }
-    };
-    fill: {
-        [index: string]: {
-            color: string;
-            pattern: string;
-        }
-    };
-    pieceCount: number;
-}
 
-class Pos {
-    x: number;
-    y: number;
-
-    constructor(x: number, y: number) {
-        this[0] = x;
-        this.x = x;
-        this[1] = y;
-        this.y = y;
-    }
+interface SessionSocket extends ws.WebSocket {
+    sessionId?: string;
 }
