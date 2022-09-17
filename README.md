@@ -1,4 +1,4 @@
-# simple-vtt
+# SimpleVTT
 A simple, fast, system-less Virtual Table Top.
 
 If you want to use it **right now**, you can use this handy button here to
@@ -8,6 +8,9 @@ launch it on Heroku:
 
 A free demo (that may be laggy and should not be used for actual games) can be
 found at <https://simple-vtt.herokuapp.com>.
+
+*Note: this site may go down as Heroku is removing their free tier. I am
+working on an Oracle Cloud version so that hosting can remain free*
 
 **Table of Contents**
  - [Configuration](#configuration)

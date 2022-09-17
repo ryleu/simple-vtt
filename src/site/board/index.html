@@ -20,7 +20,7 @@ You should have received a copy of the GNU Affero General Public License along w
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Simple VTT</title>
+    <title>SimpleVTT</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -30,16 +30,16 @@ You should have received a copy of the GNU Affero General Public License along w
 
 <!-- main menu -->
 <div class="hidden-menu" id="main-menu">
-    <button class="menu-button" id="menu-create-piece" title="Add Piece">
+    <button class="menu-button" id="menu-create-piece" title="Add&nbsp;Piece">
         <img class="menu-image" id="menu-create-piece-img" src="/icons/plus.svg"  alt="Add Piece"/>
     </button>
-    <button class="menu-button" id="menu-create-line" title="Draw Lines">
+    <button class="menu-button" id="menu-create-line" title="Draw&nbsp;Lines">
         <img class="menu-image" id="menu-create-line-img" src="/icons/pencil.svg"  alt="Draw Lines"/>
     </button>
-    <button class="menu-button" id="menu-delete" title="Delete Elements">
+    <button class="menu-button" id="menu-delete" title="Delete&nbsp;Elements">
         <img class="menu-image" id="menu-delete-img" src="/icons/trash.svg"  alt="Delete Elements"/>
     </button>
-    <button class="menu-button" id="menu-fill" title="Fill Squares">
+    <button class="menu-button" id="menu-fill" title="Fill&nbsp;Squares">
         <img class="menu-image" id="menu-fill-img" src="/icons/bucket.svg"  alt="Fill Squares"/>
     </button>
     <div class="flexbox">
@@ -66,10 +66,10 @@ You should have received a copy of the GNU Affero General Public License along w
         <input class="menu-input" id="piece-menu-name-input" type="text" />
     </div>
     <div class="menu-vertical" id="piece-menu-url">
-        <h2 class="menu-input-title">Icon URL</h2>
+        <h2 class="menu-input-title">Icon&nbsp;URL</h2>
         <input class="menu-input" id="piece-menu-icon-input" type="url" />
     </div>
-    <button class="menu-button" id="piece-menu-load" title="Load Preview">
+    <button class="menu-button" id="piece-menu-load" title="Load&nbsp;Preview">
         <img class="menu-image" id="piece-menu-load-img" src="/icons/refresh.svg"  alt="Load Preview"/>
     </button>
     <img class="menu-preview-image" id="piece-menu-preview" alt="" src="" />
@@ -95,7 +95,7 @@ You should have received a copy of the GNU Affero General Public License along w
     <button class="menu-button" id="delete-menu-close" title="Cancel">
         <img class="menu-image" id="delete-menu-close-img" src="/icons/cancel.svg" alt="Cancel" />
     </button>
-    <h1 style="position: relative; top: calc(50px - 1.25em); color: #ff0000; font-size: 3em;">Delete Mode</h1>
+    <h1 style="position: relative; top: calc(50px - 1.25em); font-size: 3em;">Delete&nbsp;Mode</h1>
 </div>
 
 <!-- fill menu -->
@@ -119,7 +119,7 @@ You should have received a copy of the GNU Affero General Public License along w
         <h2 class="menu-input-title">Scale</h2>
         <input class="menu-input" id="config-menu-scale-input" type="number" min="25" max="300" />
     </div>
-    <button class="menu-button" id="config-menu-rescale" title="Apply Scale">
+    <button class="menu-button" id="config-menu-rescale" title="Apply&nbsp;Scale">
         <img class="menu-image" id="config-menu-rescale-img" src="/icons/refresh.svg"  alt="Apply Scale"/>
     </button>
 
@@ -132,7 +132,7 @@ You should have received a copy of the GNU Affero General Public License along w
             <input class="menu-input" id="config-menu-dims-input-y" type="number" min="1" max="100" />
         </div>
     </div>
-    <button class="menu-button" id="config-menu-dims-apply" title="Apply Dimensions">
+    <button class="menu-button" id="config-menu-dims-apply" title="Apply&nbsp;Dimensions">
         <img class="menu-image" id="config-menu-dims-apply-img" src="/icons/refresh.svg"  alt="Apply Dimensions"/>
     </button>
 
@@ -143,21 +143,21 @@ You should have received a copy of the GNU Affero General Public License along w
 
     <div class="flexbox"></div>
     <div class="menu-vertical" id="config-menu-upload">
-        <h2 class="menu-input-title">Load JSON</h2>
+        <h2 class="menu-input-title">Load&nbsp;JSON</h2>
         <div class="menu-vertical-split" id="config-menu-upload-split">
             <label class="menu-input" for="config-menu-upload-input" style="width: 50%; margin-right: 5px;">
-                <p style="margin-bottom: 0; margin-top: calc(25% - 1.5ex); text-align: center;">Select File</p>
+                <p style="margin-bottom: 0; margin-top: calc(25% - 1.5ex); text-align: center;">Select&nbsp;File</p>
                 <input id="config-menu-upload-input" type="file" accept="application/json" style="visibility: collapse;" />
             </label>
-            <p style="flex: 1; width: 50%; height: 100%; margin: 0; margin-left: 5px;" id="config-menu-upload-selected">No file selected...</p>
+            <p style="flex: 1; width: 50%; height: 100%; margin: 0; margin-left: 5px;" id="config-menu-upload-selected">No&nbsp;file&nbsp;selected...</p>
         </div>
     </div>
-    <button class="menu-button" id="config-menu-upload-apply" title="Apply Board">
+    <button class="menu-button" id="config-menu-upload-apply" title="Apply&nbsp;Board">
         <img class="menu-image" id="config-menu-upload-apply-img" src="/icons/refresh.svg" alt="Apply Board" />
     </button>
 
     <div class="flexspace"></div>
-    <button class="menu-button" id="config-menu-download" title="Download JSON">
+    <button class="menu-button" id="config-menu-download" title="Download&nbsp;JSON">
         <img class="menu-image" id="menu-config-download-img" src="/icons/download.svg" alt="Download Board" />
     </button>
     <div class="endcap"></div>
