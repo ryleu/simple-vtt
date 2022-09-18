@@ -391,7 +391,7 @@ function newWebSocket() {
             case "S": // Add piece
                 board.pieces[data[0]] = new Piece(
                     data[0], // id
-                    Buffer.from(data[1], "base64").toString(), // base64 name
+                    atob(data[1]), // base64 name
                     Pos.fromString(data[2]), // position
                     data[3].toString("base64") // base64 icon url
                 );
