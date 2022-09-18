@@ -393,7 +393,7 @@ function newWebSocket() {
                     data[0], // id
                     atob(data[1]), // base64 name
                     Pos.fromString(data[2]), // position
-                    data[3].toString("base64") // base64 icon url
+                    atob(data[3]) // base64 icon url
                 );
                 break;
             case "M": // Move piece
