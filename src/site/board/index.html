@@ -69,9 +69,7 @@ You should have received a copy of the GNU Affero General Public License along w
         <h2 class="menu-input-title">Icon&nbsp;URL</h2>
         <input class="menu-input" id="piece-menu-icon-input" type="url" />
     </div>
-    <button class="menu-button" id="piece-menu-load" title="Load&nbsp;Preview">
-        <img class="menu-image" id="piece-menu-load-img" src="/icons/refresh.svg"  alt="Load Preview"/>
-    </button>
+    <div class="flexspace"></div>
     <img class="menu-preview-image" id="piece-menu-preview" alt="" src="" />
   </div>
 
@@ -111,37 +109,54 @@ You should have received a copy of the GNU Affero General Public License along w
 
 <!-- config menu -->
 <div class="hidden-menu" id="config-menu">
+    <!-- close -->
     <button class="menu-button" id="config-menu-close" title="Cancel">
         <img class="menu-image" id="config-menu-close-img" src="/icons/cancel.svg" alt="Cancel" />
     </button>
 
+    <!-- scale -->
     <div class="menu-vertical" id="config-menu-scale">
         <h2 class="menu-input-title">Scale</h2>
         <input class="menu-input" id="config-menu-scale-input" type="number" min="25" max="300" />
     </div>
-    <button class="menu-button" id="config-menu-rescale" title="Apply&nbsp;Scale">
-        <img class="menu-image" id="config-menu-rescale-img" src="/icons/refresh.svg"  alt="Apply Scale"/>
-    </button>
 
+    <!-- dimensions -->
     <div class="flexspace"></div>
     <div class="menu-vertical" id="config-menu-dims">
         <h2 class="menu-input-title">Dimensions</h2>
         <div class="menu-vertical-split" id="config-menu-dims-split">
             <input class="menu-input" id="config-menu-dims-input-x" type="number" min="1" max="100" />
-            <p style="width: 1.5em; text-align: center;">X</p>
+            <p style="text-align: center;">&nbsp;X&nbsp;</p>
             <input class="menu-input" id="config-menu-dims-input-y" type="number" min="1" max="100" />
         </div>
     </div>
-    <button class="menu-button" id="config-menu-dims-apply" title="Apply&nbsp;Dimensions">
+    <button class="menu-button" id="config-menu-dims-apply" title="Apply Dimensions">
         <img class="menu-image" id="config-menu-dims-apply-img" src="/icons/refresh.svg"  alt="Apply Dimensions"/>
     </button>
 
+    <!-- background -->
     <div class="flexspace"></div>
+    <div class="menu-vertical" id="config-menu-background" style="width: 280px">
+        <h2 class="menu-input-title">Background</h2>
+        <div class="menu-vertical-split" id="config-menu-background-split">
+            <p style="text-align: center;">URL</p>
+            <input class="menu-input" id="config-menu-background-input-url" type="url" />
+            <p style="text-align: center;">&nbsp;Width</p>
+            <input class="menu-input" id="config-menu-background-input-width" type="number" min="0" step="1" />
+        </div>
+    </div>
+    <button class="menu-button" id="config-menu-background-apply" title="Apply Background">
+        <img class="menu-image" id="config-menu-background-apply-img" src="/icons/refresh.svg"  alt="Apply Background"/>
+    </button>
+
+    <!-- reset -->
+    <div class="flexbox"></div>
     <button class="menu-button" id="config-menu-reset" title="Reset">
         <img class="menu-image" id="config-menu-reset-img" src="/icons/trash.svg"  alt="Reset"/>
     </button>
 
-    <div class="flexbox"></div>
+    <!-- upload -->
+    <div class="flexspace"></div>
     <div class="menu-vertical" id="config-menu-upload">
         <h2 class="menu-input-title">Load&nbsp;JSON</h2>
         <div class="menu-vertical-split" id="config-menu-upload-split">
@@ -149,15 +164,16 @@ You should have received a copy of the GNU Affero General Public License along w
                 <p style="margin-bottom: 0; margin-top: calc(25% - 1.5ex); text-align: center;">Select&nbsp;File</p>
                 <input id="config-menu-upload-input" type="file" accept="application/json" style="visibility: collapse;" />
             </label>
-            <p style="flex: 1; width: 50%; height: 100%; margin: 0; margin-left: 5px;" id="config-menu-upload-selected">No&nbsp;file&nbsp;selected...</p>
+            <p style="flex: 1; width: 50%; height: 100%; margin: 0; margin-left: 5px;" id="config-menu-upload-selected">No file selected...</p>
         </div>
     </div>
-    <button class="menu-button" id="config-menu-upload-apply" title="Apply&nbsp;Board">
+    <button class="menu-button" id="config-menu-upload-apply" title="Apply Board">
         <img class="menu-image" id="config-menu-upload-apply-img" src="/icons/refresh.svg" alt="Apply Board" />
     </button>
 
+    <!-- download -->
     <div class="flexspace"></div>
-    <button class="menu-button" id="config-menu-download" title="Download&nbsp;JSON">
+    <button class="menu-button" id="config-menu-download" title="Download JSON">
         <img class="menu-image" id="menu-config-download-img" src="/icons/download.svg" alt="Download Board" />
     </button>
     <div class="endcap"></div>

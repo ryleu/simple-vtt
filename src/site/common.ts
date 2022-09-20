@@ -32,6 +32,10 @@ export enum FillPatterns {
 
 export interface ServerBoard {
     dimensions: Pos;
+    background?: {
+        image: string;
+        width: number;
+    };
     pieces: {
         [index: string]: ServerPiece
     };

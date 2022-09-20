@@ -42,7 +42,8 @@ S-VTT uses a simplistic spec for websocket communication:
 |    Fill a tile    |         `&F;<x>,<y>;<color>;<style>`         |               `&F;<x>,<y>;<color>;<style>`                | `x,y`: Tile coordinate pair <br /> `color:` Hex color code <br /> `style:` Style of fill. Options: solid. Default: solid.                       |
 | Re-size the board |                 `&B;<x>,<y>`                 |                       `&B;<x>,<y>`                        | `x,y` Integer length / width pair                                                                                                               |
 |  Clear the board  |                     `&C`                     |                        `&B;30,15`                         | None                                                                                                                                            |
-|    Join a room    |                `&A;<invite>`                 |                       `&A;<invite>;<success>`             | `invite`: Invite code <br /> `success`: true if the session exists, false if it does not                                                        |
+|    Join a room    |                `&A;<invite>`                 |                   `&A;<invite>;<success>`                 | `invite`: Invite code <br /> `success`: true if the session exists, false if it does not                                                        |
+| Set the background|             `&G;<image>;<width>`             |                    `&G;<image>;<width>`                   | `image`: Base64-encoded image URL <br /> `width`: integer width of the background image measured in tiles                                       |
 
 There are also an HTTP API at `/api/`:
 

@@ -117,6 +117,7 @@ const Files = Object.freeze(cacheFiles("site", [
             { name: "pencil.svg", type: "file" },
             { name: "plus.svg", type: "file" },
             { name: "refresh.svg", type: "file" },
+            { name: "tick.svg", type: "file" },
             { name: "trash.svg", type: "file" },
             { name: "undo.svg", type: "file" }
         ]
@@ -154,8 +155,6 @@ let sockets: Array<SessionSocket> = [];
 let sessions: {[sessionId: string]: { sockets: Array<SessionSocket>, board: ServerBoard, hasBeenLoaded: boolean }} = {};
 
 const server = http.createServer((req: http.IncomingMessage, res: http.ServerResponse) => {
-    console.log(`user -> ${req.url}`);
-
     try {
         // Initial 200 status code
         res.statusCode = 200;
@@ -283,6 +282,8 @@ const server = http.createServer((req: http.IncomingMessage, res: http.ServerRes
     } catch (e) {
         console.log(e);
     }
+
+    console.log(`${req.url} -> ${res.statusCode}`);
 }).listen(port, () => {
     console.log(`Listening on 0.0.0.0:${port}`);
 }).addListener("error", (err: Error) => {
@@ -305,7 +306,9 @@ wss.on('connection', function(socket: SessionSocket) {
             const action = rawData[0].substring(1);
             const data = rawData.slice(1, rawData.length);
 
-            if (socket.sessionId === undefined) {
+            let sessionId = socket.sessionId;
+
+            if (sessionId === undefined) {
                 let id = data[0];
                 if (action === "A" && sessions[id]) {
                     socket.send(`${msgStr};true`);
@@ -315,16 +318,18 @@ wss.on('connection', function(socket: SessionSocket) {
                     }
                 } else if (!sessions[id]) {
                     socket.send(`${msgStr};false`);
-                    return;
                 }
+                return;
             }
+
+            let session = sessions[sessionId];
+            let board = session.board;
 
             let out = msgStr;
 
 
             switch (action) {
                 case "S":
-                    let board = sessions[socket.sessionId].board;
                     let id = `${board.pieceCount}-${crypto.MD5(board.pieceCount.toString() + data).toString()}`;
 
                     board.pieces[id] = {
@@ -338,10 +343,10 @@ wss.on('connection', function(socket: SessionSocket) {
                     out = `&S;${id};${data[0]};${data[1]};${data[2]}`;
                     break;
                 case "M":
-                    sessions[socket.sessionId].board.pieces[data[0]].pos = Pos.fromString(data[1]);
+                    board.pieces[data[0]].pos = Pos.fromString(data[1]);
                     break;
                 case "D":
-                    delete sessions[socket.sessionId].board.pieces[data[0]];
+                    delete board.pieces[data[0]];
                     break;
                 case "L":
                     let pos1 = Pos.fromString(data[0]);
@@ -351,7 +356,7 @@ wss.on('connection', function(socket: SessionSocket) {
 
                     let posPair = toPosPair(pos1, pos2);
 
-                    sessions[socket.sessionId].board.lines[posPair] = {
+                    board.lines[posPair] = {
                         "pos1": pos1,
                         "pos2": pos2,
                         "thickness": thickness,
@@ -361,13 +366,13 @@ wss.on('connection', function(socket: SessionSocket) {
                     out = `&L;${posPair};${data[0]};${data[1]};${data[2]};${data[3]}`;
                     break;
                 case "R":
-                    delete sessions[socket.sessionId].board.lines[data[0]];
+                    delete board.lines[data[0]];
                     break;
                 case "B":
-                    sessions[socket.sessionId].board.dimensions = Pos.fromString(data[0]);
+                    board.dimensions = Pos.fromString(data[0]);
                     break;
                 case "C":
-                    sessions[socket.sessionId].board = defaultBoard();
+                    session.board = defaultBoard();
                     out = "&B;30,15";
                     break;
                 case "F":
@@ -379,19 +384,26 @@ wss.on('connection', function(socket: SessionSocket) {
 
                     let pattern = possiblePatterns.includes(data[2]) ? data[2] : "solid";
                     if (fillColor !== "reset") {
-                        sessions[socket.sessionId].board.fill[squareId] = {
+                        board.fill[squareId] = {
                             color: fillColor,
                             pattern: pattern
                         };
                     } else {
-                        delete sessions[socket.sessionId].board.fill[squareId];
+                        delete board.fill[squareId];
                     }
                     out = `&F;${data[0]};${fillColor};${pattern}`;
+                    break;
+                case "G":
+                    board.background = {
+                        image: atob(data[0]),
+                        width: parseInt(data[1])
+                    };
                     break;
                 default:
                     return;
             }
-            sessions[socket.sessionId].sockets.forEach(s => s.send(out));
+
+            session.sockets.forEach(s => s.send(out));
         } catch (e) {
             console.error(e);
         }

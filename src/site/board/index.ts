@@ -28,12 +28,7 @@ boardId = document
     .filter(splitArg => splitArg[0] === "id")[0][1];
 
 // create an empty board
-let board: {
-    dimensions: Pos,
-    pieces: { [index: string]: Piece },
-    lines: { [index: string]: Line },
-    fill: { [index: string]: SquareFill }
-} = {
+let board: ClientBoard = {
     dimensions: {x: 0, y: 0},
     pieces: {},
     lines: {},
@@ -49,8 +44,8 @@ enum States {
     LINE_DRAW_B = "lineB", // line drawing, only 1 point
     PIECE_SELECTED = "piece", // piece selected
     DELETE = "delete", // delete mode
-    ADD_PIECE_A = "addA", // add piece, not complete
-    ADD_PIECE_B = "addB", // add piece, not completeDimensionsDimensions
+    ADD_PIECE_A = "addA", // add piece, no data yet
+    ADD_PIECE_B = "addB", // add piece, no position yet
     FILL = "fill", // fill a tile with a color
 }
 
@@ -172,6 +167,7 @@ function newWebSocket() {
 
                 fixedBoard = {
                     dimensions: board.dimensions,
+                    background: board.background,
                     pieces: pieces,
                     lines: lines,
                     fill: board.fill,
@@ -213,8 +209,7 @@ function newWebSocket() {
             img.src = "";
         });
 
-        // add piece preview
-        document.getElementById("piece-menu-load")!!.addEventListener("click", () => {
+        function previewPiece() {
             state = States.ADD_PIECE_B;
             stateData = new AddPieceStateData(
                 (document.getElementById("piece-menu-name-input")!! as HTMLInputElement).value,
@@ -224,7 +219,11 @@ function newWebSocket() {
             let img = document.getElementById("piece-menu-preview")!! as HTMLImageElement;
             img.title = stateData.name;
             img.src = stateData.icon;
-        });
+        }
+
+        // add piece preview
+        document.getElementById("piece-menu-name-input")!!.addEventListener("change", previewPiece);
+        document.getElementById("piece-menu-icon-input")!!.addEventListener("change", previewPiece);
 
 
         // // add line button
@@ -284,6 +283,8 @@ function newWebSocket() {
             (document.getElementById("config-menu-scale-input")!! as HTMLInputElement).value = getScale().toString();
             (document.getElementById("config-menu-dims-input-x")!! as HTMLInputElement).value = board.dimensions.x.toString();
             (document.getElementById("config-menu-dims-input-y")!! as HTMLInputElement).value = board.dimensions.y.toString();
+            (document.getElementById("config-menu-background-input-url")!! as HTMLInputElement).value = board.background?.image ?? "";
+            (document.getElementById("config-menu-background-input-width")!! as HTMLInputElement).value = (board.background?.width ?? 1).toString();
 
             document.getElementById("main-menu")!!.className = "hidden-menu";
             document.getElementById("config-menu")!!.className = "menu";
@@ -293,9 +294,12 @@ function newWebSocket() {
         document.getElementById("config-menu-close")!!.addEventListener("click", () => {
             document.getElementById("main-menu")!!.className = "menu";
             document.getElementById("config-menu")!!.className = "hidden-menu";
+
+            refreshBackground();
         });
 
-        function rescale() {
+        // config scale
+        document.getElementById("config-menu-scale-input")!!.addEventListener("change", () => {
             let inputElement = (document.getElementById("config-menu-scale-input")!! as HTMLInputElement);
             let scaleInput = parseInt(inputElement.value);
 
@@ -307,11 +311,37 @@ function newWebSocket() {
                 scaleInput = 300;
             }
             setScale(Math.round(scaleInput));
+        });
+
+        // config background
+        let backgroundUrlElement = (document.getElementById("config-menu-background-input-url")!! as HTMLInputElement);
+        let backgroundWidthElement = (document.getElementById("config-menu-background-input-width")!! as HTMLInputElement);
+
+        function updateBackground() {
+            if (parseInt(backgroundWidthElement.value) < 1) {
+                backgroundWidthElement.value = "1";
+            }
+
+            if (backgroundUrlElement.value !== "") {
+                getBoardElement().style.backgroundImage = `url("${backgroundUrlElement.value}")`;
+                getRootElement().style.setProperty("--grid-on", "1");
+                getRootElement().style.setProperty("--square-background-color", "transparent");
+            } else {
+                getBoardElement().style.backgroundImage = "none";
+                getRootElement().style.setProperty("--grid-on", "0");
+                getRootElement().style.setProperty("--square-background-color", "var(--main-color)");
+            }
+
+            getRootElement().style.setProperty("--background-width", backgroundWidthElement.value);
         }
 
-        // config scale
-        document.getElementById("config-menu-rescale")!!.addEventListener("click", rescale);
-        (document.getElementById("config-menu-scale-input")!! as HTMLInputElement).addEventListener("change", rescale);
+        backgroundUrlElement.addEventListener("change", updateBackground);
+        backgroundWidthElement.addEventListener("change", updateBackground);
+
+        document.getElementById("config-menu-background-apply")!!.addEventListener("click", () => {
+            sock.send(`&G;${btoa(backgroundUrlElement.value)};${backgroundWidthElement.value}`);
+            document.getElementById("config-menu-close")!!.click();
+        });
 
         // config dimensions
         document.getElementById("config-menu-dims-apply")!!.addEventListener("click", () => {
@@ -437,7 +467,7 @@ function newWebSocket() {
                     square.style.backgroundColor = color.toString();
                 } else {
                     delete board.fill[squareId];
-                    square.style.backgroundColor = "var(--main-color)";
+                    square.style.backgroundColor = "var(--square-background-color)";
                 }
                 break;
             case "A":
@@ -451,6 +481,17 @@ function newWebSocket() {
                         ws = newWebSocket();
                     };
                 }
+                break;
+            case "G":
+                let boardImage = atob(data[0]);
+                let boardWidth = parseInt(data[1]);
+
+                board.background = {
+                    image: boardImage,
+                    width: boardWidth
+                };
+
+                refreshBackground();
         }
     };
 
@@ -462,9 +503,11 @@ ws = newWebSocket();
 fetch(`/api/board/?id=${boardId}`)
     .then(response => {
         if (response.ok) {
-            response.json().then(json => {
+            response.json().then((json: ServerBoard) => {
                 board.dimensions = json.dimensions;
                 board.fill = json.fill;
+                board.background = json.background;
+                refreshBackground();
                 renderBoard(json.dimensions.x, json.dimensions.y);
             
                 Object.keys(json.pieces).forEach((pieceId) => {
@@ -523,7 +566,7 @@ function renderBoard(x: number, y: number) {
         row.className = "row";
         row.id = "row-" + i;
         row.style.width = `calc(var(--scale) * ${x}px)`;
-        row.style.height = "calc(var(--scale) * 1px)";
+        row.style.top = `calc(var(--scale) * ${i}px)`;
 
         for (let j = 0; j < x; j++) {
             let square = document.createElement("div");
@@ -537,19 +580,15 @@ function renderBoard(x: number, y: number) {
             }
 
             // this is some basic chess board color logic
-            square.style.width = "calc(var(--scale) * 1px)";
-            square.style.height = "calc(var(--scale) * 1px)";
             square.style.left = `calc(var(--scale) * ${j}px)`;
 
             let button = document.createElement("button");
             button.className = "square-button";
             button.id = `square-button-${i}-${j}`;
-            button.style.width = "calc(var(--scale) * 1px)";
-            button.style.height = "calc(var(--scale) * 1px)";
             if ((i + j) % 2 === 0) {
                 // I'm using an overlay here so that the color will change with any
                 // background color
-                button.style.backgroundColor = "var(--main-accent-difference)";
+                button.style.backgroundColor = "var(--grid-alt-color)";
             }
 
             button.addEventListener("click", event => {
@@ -608,16 +647,11 @@ function clickEvent(pos: Pos) {
             break;
         case States.ADD_PIECE_B:
             if (!(stateData instanceof AddPieceStateData)) return;
-            let img = (document.getElementById("piece-menu-preview")!! as HTMLImageElement);
-            img.title = "";
-            img.src = "";
             ws.send(
                 `&S;${btoa(stateData.name)};` +
                 `${piecePos.x},${piecePos.y};` +
                 `${btoa(stateData.icon)}`
             );
-            stateData = null;
-            state = States.NEUTRAL;
             break;
         case States.FILL:
             let color = (document.getElementById("fill-menu-color-input")!! as HTMLInputElement).value;
@@ -632,9 +666,30 @@ function clickEvent(pos: Pos) {
 
 // HELPER FUNCTIONS //
 
+function refreshBackground() {
+    let image = board.background?.image ?? "";
+    let width = board.background?.width ?? 1;
+
+    if (image !== "") {
+        getBoardElement().style.backgroundImage = `url("${image}")`;
+        getRootElement().style.setProperty("--grid-on", "1");
+        getRootElement().style.setProperty("--square-background-color", "transparent");
+    } else {
+        getBoardElement().style.backgroundImage = "none";
+        getRootElement().style.setProperty("--grid-on", "0");
+        getRootElement().style.setProperty("--square-background-color", "var(--main-color)");
+    }
+
+    getRootElement().style.setProperty("--background-width", width.toString());
+}
+
 // get the element for the board
 function getBoardElement() {
-    return document.getElementById("board")!!;
+    return document.getElementById("board") as HTMLDivElement;
+}
+
+function getRootElement() {
+    return document.querySelector(':root') as HTMLElement;
 }
 
 // get the width of each tile
@@ -871,6 +926,17 @@ class LineDrawStateData {
     }
 }
 
+interface ClientBoard {
+    dimensions: Pos;
+    background?: {
+        image: string;
+        width: number;
+    };
+    pieces: { [index: string]: Piece };
+    lines: { [index: string]: Line };
+    fill: { [index: string]: SquareFill };
+}
+
 // TODO: figure out common.ts
 class Pos {
     x: number;
@@ -906,6 +972,10 @@ enum FillPatterns {
 
 interface ServerBoard {
     dimensions: Pos;
+    background?: {
+        image: string;
+        width: number;
+    };
     pieces: {
         [index: string]: ServerPiece
     };

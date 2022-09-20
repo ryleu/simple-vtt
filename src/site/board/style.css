@@ -18,8 +18,13 @@ You should have received a copy of the GNU Affero General Public License along w
     --text-color: #dfdfdf;
     --main-color: #484e51;
     --accent-color: #35393b;
-    --main-accent-difference: rgba(34, 36, 39, 0.5);
+    --main-alt-difference: rgba(34, 36, 39, 0.5);
+    --grid-alt-color: rgba(34, 36, 39, calc(0.5 * (1 - var(--grid-on))));
     --selected-yellow: #ffff00;
+    --grid-on: 0;
+    --grid-width: 2px;
+    --background-width: 1;
+    --square-background-color: var(--main-color);
 }
 
 * {
@@ -61,6 +66,12 @@ body {
     top: 100px;
     overflow: scroll;
     bottom: -100px;
+}
+
+#board {
+    background-image: none;
+    background-size: calc(1px * var(--scale) * var(--background-width)) auto;
+    background-repeat: no-repeat;
 }
 
 .flexbox {
@@ -171,24 +182,38 @@ body {
     border-style: solid;
 }
 
+.row {
+    z-index: 0;
+    position: absolute;
+    height: calc(var(--scale) * 1px);
+}
+
 .square {
     z-index: 1;
     position: absolute;
-    background-color: var(--main-color);
+    width: calc(var(--scale) * 1px);
+    height: calc(var(--scale) * 1px);
+    background-color: var(--square-background-color);
+    border-width: calc(var(--grid-on) * var(--grid-width));
+    border-color: var(--main-alt-difference);
+    border-style: solid;
 }
 
 .square-button {
     z-index: 2;
+    position: absolute;
+    width: calc(var(--scale) * 1px);
+    height: calc(var(--scale) * 1px);
     background-color: rgba(0, 0, 0, 0);
+    transform: translateX(calc(var(--grid-on) * -1 *var(--grid-width))) translateY(calc(var(--grid-on) * -1 * var(--grid-width)));
     border-radius: 0;
     border-width: 0;
     border-style: none;
-    position: absolute;
     padding: 0;
 }
 
 .square-button:active {
-    border-style: solid;
+    border-style: none;
 }
 
 .line {
