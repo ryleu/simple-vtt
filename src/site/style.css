@@ -38,9 +38,13 @@ a:visited {
 }
 
 .button-holder {
-    flex: 1;
-    height: 500px;
-    width: 300px;
+    height: min(60vh, 500px);
+    width: min(90vw, 600px);
+}
+
+#title {
+    text-align: center;
+    font-size: min(15vw, 5em);
 }
 
 #menu-button-create {
