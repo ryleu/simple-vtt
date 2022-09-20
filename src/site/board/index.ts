@@ -97,10 +97,48 @@ function newWebSocket() {
         // try to connect to a board
         sock.send(`&A;${boardId}`);
 
+        let body = document.getElementById("body") as HTMLBodyElement;
+        let mainMenu = document.getElementById("main-menu") as HTMLDivElement;
+
+        body.addEventListener("keyup", (event: KeyboardEvent) => {
+            if (mainMenu.className === "menu") {
+                switch (event.key) {
+                    case "i":
+                        setScale(Math.min(getScale() + 5, 300));
+                        break;
+                    case "o":
+                        setScale(Math.max(getScale() - 5, 25));
+                        break;
+                    case "p":
+                        document.getElementById("line-menu-open")!!.click()
+                        break;
+                    case "d":
+                        document.getElementById("delete-menu-open")!!.click()
+                        break;
+                    case "a":
+                        document.getElementById("piece-menu-open")!!.click()
+                        break;
+                    case "f":
+                        document.getElementById("fill-menu-open")!!.click()
+                        break;
+                    case "s":
+                    case "c":
+                        document.getElementById("config-menu-open")!!.click()
+                        break;
+                }
+            } else {
+                switch (event.key) {
+                    case "Escape":
+                        let menuName = (document.getElementsByClassName("menu")[0] as HTMLDivElement).id.match(/[a-z]+-menu/)[0];
+                        document.getElementById(`${menuName}-close`)?.click();
+                }
+            }
+        });
+
         // make the main menu visible
-        document.getElementById("main-menu")!!.className = "menu";
+        mainMenu.className = "menu";
         // remove the loading cursor
-        document.getElementById("body")!!.style.cursor = "default";
+        body.style.cursor = "default";
         // make the board holder visible
         document.getElementById("board-holder")!!.style.display = "inherit";
         // display the invite code
@@ -187,11 +225,11 @@ function newWebSocket() {
         // <mapping-buttons> //
 
         // // add piece button
-        document.getElementById("menu-create-piece")!!.addEventListener("click", () => {
+        document.getElementById("piece-menu-open")!!.addEventListener("click", () => {
             state = States.ADD_PIECE_A;
             stateData = null;
             document.getElementById("main-menu")!!.className = "hidden-menu";
-            document.getElementById("add-piece-menu")!!.className = "menu";
+            document.getElementById("piece-menu")!!.className = "menu";
         });
 
         // add piece cancel
@@ -199,7 +237,7 @@ function newWebSocket() {
             state = States.NEUTRAL;
             stateData = null;
             document.getElementById("main-menu")!!.className = "menu";
-            document.getElementById("add-piece-menu")!!.className = "hidden-menu";
+            document.getElementById("piece-menu")!!.className = "hidden-menu";
 
             // clear our piece menu when closing it
             (document.getElementById("piece-menu-name-input") as HTMLInputElement)!!.value = "";
@@ -227,11 +265,11 @@ function newWebSocket() {
 
 
         // // add line button
-        document.getElementById("menu-create-line")!!.addEventListener("click", () => {
+        document.getElementById("line-menu-open")!!.addEventListener("click", () => {
             state = States.LINE_DRAW_A;
             stateData = null;
             document.getElementById("main-menu")!!.className = "hidden-menu";
-            document.getElementById("add-line-menu")!!.className = "menu";
+            document.getElementById("line-menu")!!.className = "menu";
         });
 
         // add line cancel
@@ -239,12 +277,12 @@ function newWebSocket() {
             state = States.NEUTRAL;
             stateData = null;
             document.getElementById("main-menu")!!.className = "menu";
-            document.getElementById("add-line-menu")!!.className = "hidden-menu";
+            document.getElementById("line-menu")!!.className = "hidden-menu";
         });
 
 
         // // add fill button
-        document.getElementById("menu-fill")!!.addEventListener("click", () => {
+        document.getElementById("fill-menu-open")!!.addEventListener("click", () => {
             state = States.FILL;
             stateData = null;
             document.getElementById("main-menu")!!.className = "hidden-menu";
@@ -261,7 +299,7 @@ function newWebSocket() {
 
 
         // // delete button
-        document.getElementById("menu-delete")!!.addEventListener("click", () => {
+        document.getElementById("delete-menu-open")!!.addEventListener("click", () => {
             state = States.DELETE;
             stateData = null;
             document.getElementById("main-menu")!!.className = "hidden-menu";
@@ -278,7 +316,7 @@ function newWebSocket() {
 
 
         // // config button
-        document.getElementById("menu-config")!!.addEventListener("click", () => {
+        document.getElementById("config-menu-open")!!.addEventListener("click", () => {
             // populate the dimensions and scale input fields
             (document.getElementById("config-menu-scale-input")!! as HTMLInputElement).value = getScale().toString();
             (document.getElementById("config-menu-dims-input-x")!! as HTMLInputElement).value = board.dimensions.x.toString();
