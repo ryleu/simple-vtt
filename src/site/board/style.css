@@ -22,7 +22,7 @@ You should have received a copy of the GNU Affero General Public License along w
     --grid-alt-color: rgba(34, 36, 39, calc(0.5 * (1 - var(--grid-on))));
     --selected-yellow: #ffff00;
     --grid-on: 0;
-    --grid-width: 2px;
+    --grid-width: 1px;
     --background-width: 1;
     --square-background-color: var(--main-color);
 }
