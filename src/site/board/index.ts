@@ -87,6 +87,8 @@ if (splitURL[0] === "https") {
 
 let ws: WebSocket;
 
+let pointerLine: Line;
+
 // create the websocket. this is called whenever the websocket is destroyed or disconnected
 function newWebSocket() {
     // use the URL we determined earlier
@@ -132,6 +134,65 @@ function newWebSocket() {
                         let menuName = (document.getElementsByClassName("menu")[0] as HTMLDivElement).id.match(/[a-z]+-menu/)[0];
                         document.getElementById(`${menuName}-close`)?.click();
                 }
+            }
+        });
+
+        getBoardElement().addEventListener("mousemove", (event: MouseEvent) => {
+            if (pointerLine === undefined) return;
+            let target = event.target as HTMLElement;
+            if (target === null) return;
+
+            let alignedPos: Pos;
+
+            switch (target.className) {
+                case "square":
+                case "square-button":
+                    let targetId = target.id.split("-");
+                    
+                    alignedPos = new Pos(
+                        parseInt(targetId[3]) + subScale * Math.round(event.offsetX / (getScale() * subScale)) + subScale,
+                        parseInt(targetId[2]) + subScale * Math.round(event.offsetY / (getScale() * subScale)) + subScale
+                    );
+                    break;
+                case "line":
+                    return; // TODO: fix this code
+                    // offsetX is needed here because it works the same way in Firefox, Chromium, and WebKit
+                    const relPos = polarToCartesian(event.offsetX, this.angle);
+
+                    alignedPos = new Pos(
+                        this.pos.x + subScale * (Math.round(relPos.x / (getScale() * subScale)) - 1),
+                        this.pos.y + subScale * (Math.round(relPos.y / (getScale() * subScale)) - 1)
+                    );
+                    break;
+                case "piece":
+                case "piece-image":
+                case "selected-piece":
+                    return; // TODO: fix this code
+                    alignedPos = new Pos(
+                        (this.pos.x - 1) + subScale * Math.round(event.offsetX / (getScale() * subScale)),
+                        (this.pos.y - 1) + subScale * Math.round(event.offsetY / (getScale() * subScale))
+                    );
+                    break;
+                default:
+                    return;
+            }
+
+            switch (state) {
+                case States.LINE_DRAW_A:
+                    pointerLine.updateData(
+                        alignedPos,
+                        alignedPos,
+                        parseInt((document.getElementById("line-menu-thickness-input")!! as HTMLInputElement).value),
+                        (document.getElementById("line-menu-color-input")!! as HTMLInputElement).value
+                    );
+                case States.LINE_DRAW_B:
+                    if (!(stateData instanceof LineDrawStateData)) return;
+                    pointerLine.updateData(
+                        stateData.pos,
+                        alignedPos,
+                        stateData.thickness,
+                        stateData.color
+                    );
             }
         });
 
@@ -278,6 +339,8 @@ function newWebSocket() {
             stateData = null;
             document.getElementById("main-menu")!!.className = "menu";
             document.getElementById("line-menu")!!.className = "hidden-menu";
+
+            pointerLine.updateData(new Pos(0, 0), new Pos(0, 0), 0, "#000000");
         });
 
 
@@ -448,6 +511,8 @@ function newWebSocket() {
         });
 
         // </mapping-buttons> //
+
+        pointerLine = new Line("pointer", new Pos(0, 0), new Pos(0, 0), 0, "#000000");
     };
 
     sock.onmessage = (msg) => {
@@ -775,16 +840,6 @@ class Line {
     constructor(id: string, pos1: Pos, pos2: Pos, thickness: number, color: string) {
         this.id = id;
 
-        let polPos = cartesianToPolar(pos2.x - pos1.x, pos2.y - pos1.y);
-
-        this.length = polPos.distance;
-        this.angle = polPos.radians;
-
-        this.pos = pos1;
-        this.pos2 = pos2;
-        this.thickness = thickness;
-        this.color = color;
-
         this.element = document.createElement("button");
 
         this.element.addEventListener("click", event => {
@@ -810,6 +865,22 @@ class Line {
         this.element.className = "line";
         this.element.id = `line-${this.id}`;
 
+        this.updateData(pos1, pos2, thickness, color);
+
+        getBoardElement().appendChild(this.element);
+    }
+
+    updateData(pos1: Pos, pos2: Pos, thickness: number, color: string) {
+        let polPos = cartesianToPolar(pos2.x - pos1.x, pos2.y - pos1.y);
+
+        this.length = polPos.distance;
+        this.angle = polPos.radians;
+
+        this.pos = pos1;
+        this.pos2 = pos2;
+        this.thickness = thickness;
+        this.color = color;
+
         this.element.style.width = `calc(var(--scale) * ${this.length}px)`;
         this.element.style.height = `calc(var(--scale) * ${thickness}px / 15)`;
 
@@ -817,14 +888,12 @@ class Line {
         this.element.style.borderColor = color;
         // transform because the actual value is offset by the subscale
         this.element.style.transform =
-            `translateY(calc(-${thickness}px * var(--scale) / 30 - var(--scale) * ${subScale}px))` +
+            `translateY(calc(var(--scale) * (-${thickness}px / 30 - ${subScale}px)))` +
             `translateX(calc(var(--scale) * -${subScale}px))` +
             `rotate(${this.angle}rad)`;
 
         this.element.style.left = `calc(${this.pos.x}px * var(--scale))`;
         this.element.style.top = `calc(${this.pos.y}px * var(--scale))`;
-
-        getBoardElement().appendChild(this.element);
     }
 
     remove() {
