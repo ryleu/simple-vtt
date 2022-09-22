@@ -137,7 +137,10 @@ function newWebSocket() {
             }
         });
 
+        let touchedLineButton = false;
+
         getBoardElement().addEventListener("mousemove", (event: MouseEvent) => {
+            if (touchedLineButton) return;
             if (pointerLine === undefined) return;
             let target = event.target as HTMLElement;
             if (target === null) return;
@@ -333,6 +336,10 @@ function newWebSocket() {
             document.getElementById("line-menu")!!.className = "menu";
         });
 
+        document.getElementById("line-menu-open")!!.addEventListener("touchstart", () => {
+            touchedLineButton = true;
+        });
+
         // add line cancel
         document.getElementById("line-menu-close")!!.addEventListener("click", () => {
             state = States.NEUTRAL;
@@ -341,6 +348,7 @@ function newWebSocket() {
             document.getElementById("line-menu")!!.className = "hidden-menu";
 
             pointerLine.updateData(new Pos(0, 0), new Pos(0, 0), 0, "#000000");
+            touchedLineButton = false;
         });
 
 
