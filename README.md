@@ -7,10 +7,7 @@ launch it on Heroku:
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/ryleu/simple-vtt/tree/main)
 
 A free demo (that may be laggy and should not be used for actual games) can be
-found at <https://simple-vtt.herokuapp.com>.
-
-*Note: this site may go down as Heroku is removing their free tier. I am
-working on an Oracle Cloud version so that hosting can remain free*
+found at <https://vtt.ryleu.me>.
 
 **Table of Contents**
  - [Configuration](#configuration)
@@ -27,7 +24,7 @@ The port is set through the `$PORT` environment variable.
 
 Install Node.JS and NPM and then run `npm i` in the project root.
 
-Use `npm run start` to start the server.
+Use `npm start` to start the server.
 
 ## Protocol
 S-VTT uses a simplistic spec for websocket communication:
