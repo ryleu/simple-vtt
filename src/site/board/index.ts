@@ -89,6 +89,8 @@ let ws: WebSocket;
 
 let pointerLine: Line;
 
+let touchedLineButton = false;
+
 // create the websocket. this is called whenever the websocket is destroyed or disconnected
 function newWebSocket() {
     // use the URL we determined earlier
@@ -134,68 +136,6 @@ function newWebSocket() {
                         let menuName = (document.getElementsByClassName("menu")[0] as HTMLDivElement).id.match(/[a-z]+-menu/)[0];
                         document.getElementById(`${menuName}-close`)?.click();
                 }
-            }
-        });
-
-        let touchedLineButton = false;
-
-        getBoardElement().addEventListener("mousemove", (event: MouseEvent) => {
-            if (touchedLineButton) return;
-            if (pointerLine === undefined) return;
-            let target = event.target as HTMLElement;
-            if (target === null) return;
-
-            let alignedPos: Pos;
-
-            switch (target.className) {
-                case "square":
-                case "square-button":
-                    let targetId = target.id.split("-");
-                    
-                    alignedPos = new Pos(
-                        parseInt(targetId[3]) + subScale * Math.round(event.offsetX / (getScale() * subScale)) + subScale,
-                        parseInt(targetId[2]) + subScale * Math.round(event.offsetY / (getScale() * subScale)) + subScale
-                    );
-                    break;
-                case "line":
-                    return; // TODO: fix this code
-                    // offsetX is needed here because it works the same way in Firefox, Chromium, and WebKit
-                    const relPos = polarToCartesian(event.offsetX, this.angle);
-
-                    alignedPos = new Pos(
-                        this.pos.x + subScale * (Math.round(relPos.x / (getScale() * subScale)) - 1),
-                        this.pos.y + subScale * (Math.round(relPos.y / (getScale() * subScale)) - 1)
-                    );
-                    break;
-                case "piece":
-                case "piece-image":
-                case "selected-piece":
-                    return; // TODO: fix this code
-                    alignedPos = new Pos(
-                        (this.pos.x - 1) + subScale * Math.round(event.offsetX / (getScale() * subScale)),
-                        (this.pos.y - 1) + subScale * Math.round(event.offsetY / (getScale() * subScale))
-                    );
-                    break;
-                default:
-                    return;
-            }
-
-            switch (state) {
-                case States.LINE_DRAW_A:
-                    pointerLine.updateData(
-                        alignedPos,
-                        alignedPos,
-                        parseInt((document.getElementById("line-menu-thickness-input")!! as HTMLInputElement).value),
-                        (document.getElementById("line-menu-color-input")!! as HTMLInputElement).value
-                    );
-                case States.LINE_DRAW_B:
-                    if (!(stateData instanceof LineDrawStateData)) return;
-                    pointerLine.updateData(
-                        stateData.pos,
-                        alignedPos,
-                        stateData.thickness,
-                        stateData.color
-                    );
             }
         });
 
@@ -702,14 +642,17 @@ function renderBoard(x: number, y: number) {
                 button.style.backgroundColor = "var(--grid-alt-color)";
             }
 
-            button.addEventListener("click", event => {
+            function posFromEvent(event: MouseEvent) {
                 let targetId = button.id.split("-");
 
-                clickEvent(new Pos(
+                return new Pos(
                     parseInt(targetId[3]) + subScale * Math.round(event.offsetX / (getScale() * subScale)),
                     parseInt(targetId[2]) + subScale * Math.round(event.offsetY / (getScale() * subScale))
-                ));
-            });
+                );
+            }
+
+            button.addEventListener("click", (event: MouseEvent) => clickEvent(posFromEvent(event)));
+            button.addEventListener("mousemove", (event: MouseEvent) => mouseMoveEvent(posFromEvent(event)));
 
             square.appendChild(button);
             row.appendChild(square);
@@ -771,6 +714,34 @@ function clickEvent(pos: Pos) {
         case States.DELETE:
             ws.send(`&F;${piecePos.x},${piecePos.y};reset;solid`);
             break;
+    }
+}
+
+function mouseMoveEvent(pos: Pos) {
+    if (touchedLineButton) return;
+    if (pointerLine === undefined) return;
+
+    let alignedPos = new Pos(
+        pos.x + subScale,
+        pos.y + subScale
+    )
+
+    switch (state) {
+        case States.LINE_DRAW_A:
+            pointerLine.updateData(
+                alignedPos,
+                alignedPos,
+                parseInt((document.getElementById("line-menu-thickness-input")!! as HTMLInputElement).value),
+                (document.getElementById("line-menu-color-input")!! as HTMLInputElement).value
+            );
+        case States.LINE_DRAW_B:
+            if (!(stateData instanceof LineDrawStateData)) return;
+            pointerLine.updateData(
+                stateData.pos,
+                alignedPos,
+                stateData.thickness,
+                stateData.color
+            );
     }
 }
 
@@ -850,25 +821,18 @@ class Line {
 
         this.element = document.createElement("button");
 
-        this.element.addEventListener("click", event => {
-            // offsetX is needed here because it works the same way in Firefox, Chromium, and WebKit
-            const relPos = polarToCartesian(event.offsetX, this.angle);
-
-            // Remember: the click is offset by the subscale
-            const pos = new Pos(
-                this.pos.x + subScale * (Math.round(relPos.x / (getScale() * subScale)) - 1),
-                this.pos.y + subScale * (Math.round(relPos.y / (getScale() * subScale)) - 1)
-            );
-
+        this.element.addEventListener("click", (event: MouseEvent) => {
             switch (state) {
                 case States.DELETE:
                     stateData = this;
                     ws.send(`&R;${this.id}`);
                     break;
                 default:
-                    clickEvent(pos);
+                    clickEvent(this.posFromEvent(event));
             }
         });
+
+        this.element.addEventListener("mousemove", (event: MouseEvent) => mouseMoveEvent(this.posFromEvent(event)));
 
         this.element.className = "line";
         this.element.id = `line-${this.id}`;
@@ -876,6 +840,17 @@ class Line {
         this.updateData(pos1, pos2, thickness, color);
 
         getBoardElement().appendChild(this.element);
+    }
+
+    private posFromEvent(event: MouseEvent): Pos {
+        // offsetX is needed here because it works the same way in Firefox, Chromium, and WebKit
+        const relPos = polarToCartesian(event.offsetX, this.angle);
+
+        // Remember: the click is offset by the subscale
+        return new Pos(
+            this.pos.x + subScale * (Math.round(relPos.x / (getScale() * subScale)) - 1),
+            this.pos.y + subScale * (Math.round(relPos.y / (getScale() * subScale)) - 1)
+        );
     }
 
     updateData(pos1: Pos, pos2: Pos, thickness: number, color: string) {
@@ -929,12 +904,7 @@ class Piece {
         this.image = document.createElement("img");
         this.element = document.createElement("button");
 
-        this.element.addEventListener('click', event => {
-            let pos = new Pos(
-                (this.pos.x - 1) + subScale * Math.round(event.offsetX / (getScale() * subScale)),
-                (this.pos.y - 1) + subScale * Math.round(event.offsetY / (getScale() * subScale))
-            );
-
+        this.element.addEventListener('click', (event: MouseEvent) => {
             let selectedPieces = document.getElementsByClassName("selected-piece");
 
             switch (state) {
@@ -965,9 +935,11 @@ class Piece {
                     ws.send(`&D;${this.id}`);
                     break;
                 default:
-                    clickEvent(pos);
+                    clickEvent(this.posFromEvent(event));
             }
         });
+
+        this.element.addEventListener("mousemove", (event: MouseEvent) => mouseMoveEvent(this.posFromEvent(event)));
 
         this.image.className = "piece-image";
         this.image.id = `piece-image-${id}`;
@@ -984,6 +956,13 @@ class Piece {
         this.element.style.height = "calc(var(--scale) * 1px)";
 
         this.pos = pos;
+    }
+
+    private posFromEvent(event: MouseEvent): Pos {
+        return new Pos(
+            (this.pos.x - 1) + subScale * Math.round(event.offsetX / (getScale() * subScale)),
+            (this.pos.y - 1) + subScale * Math.round(event.offsetY / (getScale() * subScale))
+        );
     }
 
     set pos(newPos) {
