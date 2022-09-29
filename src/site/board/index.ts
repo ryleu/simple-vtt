@@ -15,8 +15,6 @@ You should have received a copy of the GNU Affero General Public License along w
 
 setScale(getScale());
 
-document.getElementById("js-message")!!.style.display = "none"
-
 let boardId = "";
 
 // split up the stuff after the question mark (arguments) by &
