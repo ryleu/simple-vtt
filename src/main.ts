@@ -34,6 +34,7 @@ console.log(
 );
 
 const apiRe = /\/api/;
+const indexHtmlRe = /\/[^.]+$/;
 
 interface FileCacheReference {
     name: string;
@@ -266,8 +267,16 @@ const server = http.createServer((req: http.IncomingMessage, res: http.ServerRes
         if (path[path.length - 1] === "/") {
             path += "index.html";
         }
+        
+        if (path.match(indexHtmlRe)) {
+            res.setHeader("Content-Type", "text/html");
+            res.end(`<!DOCTYPE html><html lang="en"><script>window.location.href="${req.url + "/"}";</script></html>`);
+            return;
+        }
 
         const fileData = Files[path];
+
+
 
         if (fileData === undefined || (fileData.type === "error" && fileData.data === "not found")) {
             res.statusCode = 404;
