@@ -1,20 +1,18 @@
 {
   "name": "simple-vtt",
-  "license": "AGPL-3.0-or-later",
-  "version": "2.4.0",
-  "homepage": "https://vtt.ryleu.me/",
-  "dependencies": {
-    "@types/crypto-js": "^4.1.1",
-    "@types/node": "^18.7.18",
-    "@types/ws": "^8.5.3",
-    "crypto-js": "^4.1.1",
-    "fs": "^0.0.1-security",
-    "https": "^1.0.0",
-    "jshint": "^2.13.5",
-    "typescript": "^4.8.3",
-    "ws": "^8.5.0"
+  "module": "src/main.ts",
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
   },
   "scripts": {
-    "start": "npx tsc && cd src && env PORT=$PORT node main.js"
+    "start": "bunx tsc && cd src && bun run main.ts"
+  },
+  "type": "module",
+  "dependencies": {
+    "tsc": "^2.0.4",
+    "typescript": "^5.2.2"
   }
 }
